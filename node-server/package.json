@@ -1,0 +1,61 @@
+{
+  "name": "azure-activedirectory-library-for-ios",
+  "version": "0.0.1",
+  "licenses": [
+    {
+      "type": "Apache 2.0",
+      "url": "https://github.com/MSOpenTech/aal/raw/master/License.txt"
+    }
+  ],
+  "keywords": [
+    "saml",
+    "samlp",
+    "wsfed",
+    "azure active directory",
+    "aad",
+    "adfs",
+    "sso",
+    "shibboleth"
+  ],
+  "description": "Windows Azure Active Directroy OAuth2 Client Credentials Server for node",
+  "author": {
+    "name": "Brandon Werner",
+    "email": "brandon.werner@microsoft.com",
+    "url": "http://msopentech.com/"
+  },
+  "dependencies": {
+    "restify": "*",
+    "node-jwt": "*",
+    "underscore": "*",
+    "crypto": "*",
+    "assert-plus": "*",
+    "posix-getopt": "*",    
+    "mongoose": "*",
+    "mongodb" : "*",
+    "util" : "*",
+    "path" : "*",
+    "connect": "*",
+    "passport": "*",
+    "passport-oauth": "*",
+    "xml2js": "0.2.6",
+    "xml-crypto": "0.0.x",
+    "xmldom": "0.1.x",
+    "async": "~0.2.7",
+    "request": "~2.16.6",
+    "underscore": "~1.4.4",
+    "xtend": "~2.0.3"
+
+  },
+  "devDependencies": {
+    "grunt-contrib-jshint": "~0.1.1",
+    "grunt-contrib-watch": "~0.2.0",
+    "grunt": "~0.4.1",
+    "bunyan": "*"
+  },
+  "scripts": {
+    "test": "grunt"
+  },
+  "engines": {
+    "node": ">= 0.8.0"
+  }
+}
