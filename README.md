@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 #Windows Azure Active Directory Sample REST API Service for Node.js using MongoDB and Restify
 
 This Node.js server will give you with a quick and easy way to set up a REST API Service that's integrated with Windows Azure Active Directory for API protection using the OAuth2 protocol. The sample server included in the download are designed to run on any platform.
@@ -99,7 +99,4 @@ We would like to acknowledge the folks who own/contribute to the following proje
 ## About The Code
 
 Code hosted on GitHub under Apache 2.0 license
-=======
-azure-sdk-for-node-restapi-sample
-=================================
->>>>>>> c04cf619dd42215af6989f1c38ba7fe75d0037e9
+
