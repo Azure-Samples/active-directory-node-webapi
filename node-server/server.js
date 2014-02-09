@@ -18,7 +18,7 @@
  'use strict';
 
     /**
-    * Module dependencies.
+    * Module dependencies.      
     */
 
     var fs = require('fs');
@@ -29,7 +29,6 @@
     var getopt = require('posix-getopt');
     var mongoose = require('mongoose/');
     var restify = require('restify'); 
-    var restifyOAuth2 = require('restify-oauth2');
     var config = require('./config');
     var aadutils = require('./aadutils');
     var Metadata = require('./metadata').Metadata;
@@ -132,10 +131,11 @@ function createTask(req, res, next) {
  * Deletes a Task by name
  */
 function removeTask(req, res, next) {
-        Task.remove(req.params.task, function (err) {
+
+        Task.remove( { task:req.params.task }, function (err) {
                 if (err) {
                         req.log.warn(err,
-                                     'deleteTask: unable to delete %s',
+                                     'removeTask: unable to delete %s',
                                      req.params.task);
                         next(err);
                 } else {
@@ -143,6 +143,15 @@ function removeTask(req, res, next) {
                         next();
                 }
         });
+}
+
+/**
+ * Deletes all Tasks. A wipe
+ */
+function removeAll(req, res, next) {
+        Task.remove();
+        res.send(204);
+        return next();
 }
 
 
@@ -326,7 +335,9 @@ var server = restify.createServer({
         server.get('/tasks/:name', getTask);
         server.head('/tasks/:name', getTask);
         server.post('/tasks/:name/:task', createTask);
-        server.post('/tasks/:name/:task', removeTask);
+        server.del('/tasks/:name/:task', removeTask);
+        server.del('/tasks/:name', removeTask);
+        server.del('/tasks', removeAll, function respond(req, res, next) { res.send(204); next(); });
 
 
         // Register a default '/' handler
