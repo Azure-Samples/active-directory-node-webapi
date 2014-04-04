@@ -1,4 +1,3 @@
-
 #Windows Azure Active Directory Sample REST API Service for Node.js using MongoDB and Restify
 
 This Node.js server will give you with a quick and easy way to set up a REST API Service that's integrated with Windows Azure Active Directory for API protection using the OAuth2 protocol. The sample server included in the download are designed to run on any platform.
@@ -8,7 +7,7 @@ This REST API server is built using Restify and MongoDB with the following featu
 * A node.js server running an REST API interface with JSON using MongoDB as persistant storage
 * REST APIs leveraging OAuth2 API protection for endpoints using Windows Azure Active Directory
 
-[Refer to our Wiki](https://github.com/WindowsAzureAD/Azure-AD-TODO-Server-Sample-For-Node/wiki) for detailed walkthroughs on how to use this server.
+[Refer to our Wiki](https://github.com/AzureADSamples/WebAPI-Nodejs/wiki) for detailed walkthroughs on how to use this server.
 
 We've released all of the source code for this example in GitHub under an Apache 2.0 license, so feel free to clone (or even better, fork!) and provide feedback on the forums.
 
@@ -51,7 +50,7 @@ To use this sample you will need a Windows Azure Active Directory Tenant. If you
 
 ### Step 2: Register your Web API with your Windows Azure AD Tenant
 
-After you get your Windows Azure AD tenant, add this sample app to your tenant so you can use it to protect your API endpoints. If you need help with this step, see: [Register the REST API Service Windows Azure Active Directory](https://github.com/WindowsAzureAD/Azure-AD-TODO-Server-Sample-For-Node/wiki/Setup-Windows-Azure-AD)
+After you get your Windows Azure AD tenant, add this sample app to your tenant so you can use it to protect your API endpoints. If you need help with this step, see: [Register the REST API Service Windows Azure Active Directory](https://github.com/AzureADSamples/WebAPI-Nodejs/wiki/Setup-Windows-Azure-AD)
 
 ### Step 3: Download node.js for your platform
 To successfully use this sample, you need a working installation of Node.js.
