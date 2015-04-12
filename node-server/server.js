@@ -18,7 +18,7 @@
  'use strict';
 
     /**
-    * Module dependencies.      
+    * Module dependencies.
     */
 
     var fs = require('fs');
@@ -28,32 +28,62 @@
     var bunyan = require('bunyan');
     var getopt = require('posix-getopt');
     var mongoose = require('mongoose/');
-    var restify = require('restify'); 
+    var restify = require('restify');
+    var getopt = require('posix-getopt');
     var config = require('./config');
-    var aadutils = require('./aadutils');
-    var Metadata = require('./metadata').Metadata;
 
-    /*
-*
-* Load our old friend Passport for OAuth2 flows
-*/ 
-
-var passport = require('passport')
-  , OAuth2Strategy = require('passport-oauth').OAuth2Strategy;
 
 /**
-* Setup some configuration 
+* Load Passport for OAuth2 flows
 */
-var serverPort = process.env.PORT || 8888;
-var serverURI = ( process.env.PORT ) ? config.creds.mongoose_auth_mongohq : config.creds.mongoose_auth_local;
-var tokenEndpoint = config.creds.token_endpoint;
-var authEndpoint = config.creds.auth_endpoint;
-var fedEndpoint = config.creds.federation_metadata;
-var clientID = config.creds.client_id;
-var clientSecret = config.creds.client_secret;
-var callbackURL = config.creds.loginCallback;
-this.metadata = new Metadata(config.creds.federation_metadata);
 
+ var passport = require('passport')
+  , OAuth2Strategy = require('passport-oauth').OAuth2Strategy
+  , BearerStrategy = require('passport-http-bearer').Strategy;
+
+/**
+* Simple command line interface to help people turn on Auth on the TODO server.
+*/
+
+var parser = new getopt.BasicParser('hvd:a:m:h:', process.argv);
+var option;
+var opts = {}
+while ((option = parser.getopt()) !== undefined) {
+        switch (option.option) {
+            case 'm':
+                opts.auth = option.optarg;
+                break;
+
+            case 'h':
+                usage();
+                break;
+
+            case 'p':
+                opts.port = parseInt(option.optarg, 10);
+                break;
+
+            default:
+                usage('invalid option: ' + option.option);
+                break;
+        }
+    }
+
+    function usage(msg) {
+        if (msg)
+            console.error(msg);
+
+        var str = 'usage: ' +
+            'node server.js ' +
+            ' [-p port] [-m authtype ]';
+        console.error(str);
+        process.exit(msg ? 1 : 0);
+    }
+
+/**
+* Setup some configuration
+*/
+var serverPort = (process.env.PORT) ? opts.port : 8888;
+var serverURI = ( process.env.PORT ) ? config.creds.mongoose_auth_mongohq : config.creds.mongoose_auth_local;
 
 /**
 *
@@ -61,14 +91,14 @@ this.metadata = new Metadata(config.creds.federation_metadata);
 */
 
 global.db = mongoose.connect(serverURI);
-var Schema = mongoose.Schema;  
+var Schema = mongoose.Schema;
 
 /**
 / Here we create a schema to store our tasks. Pretty simple schema for now.
 */
 
 var TaskSchema = new Schema({
-  name: String,
+  owner: String,
   task: String,
   completed: Boolean,
   date: Date
@@ -76,7 +106,7 @@ var TaskSchema = new Schema({
 
 // Use the schema to register a model
 
-mongoose.model('Task', TaskSchema); 
+mongoose.model('Task', TaskSchema);
 var Task = mongoose.model('Task');
 
 /**
@@ -93,22 +123,22 @@ function createTask(req, res, next) {
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
     // Create a new task model, fill it up and save it to Mongodb
-  var _task = new Task(); 
+  var _task = new Task();
 
-        if (!req.params.task) {
-                req.log.warn('createTask: missing task');
-                next(new MissingTaskError());
-                return;
-        }
+  if (!req.params.task) {
+          req.log.warn({params: p}, 'createTodo: missing task');
+          next(new MissingTaskError());
+          return;
+      }
 
-/*        if (Task.find(req.params.task)) {
+        if (Task.find(req.params.task)) {
                 req.log.warn('%s already exists', req.params.task);
                 next(new TaskExistsError(req.params.task));
                 return;
-        }*/
+        }
 
 
-  _task.name = req.params.name;
+  _task.owner = req.params.owner;
    _task.task = req.params.task;
    _task.date = new Date();
 
@@ -157,15 +187,15 @@ function removeAll(req, res, next) {
 
 /**
  *
- * 
+ *
  *
  */
 function getTask(req, res, next) {
 
 
-        Task.find(req.params.name, function (err, data) {
+        Task.find(req.params.owner, function (err, data) {
                 if (err) {
-                        req.log.warn(err, 'get: unable to read %s', req.params.name);
+                        req.log.warn(err, 'get: unable to read %s', req.params.owner);
                         next(err);
                         return;
                 }
@@ -179,14 +209,14 @@ function getTask(req, res, next) {
 
 /**
  * Simple returns the list of TODOs that were loaded.
- * 
+ *
  */
 
 function listTasks(req, res, next) {
   // Resitify currently has a bug which doesn't allow you to set default headers
   // This headers comply with CORS and allow us to mongodbServer our response to any origin
 
-  res.header("Access-Control-Allow-Origin", "*"); 
+  res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
   console.log("server getTasks");
@@ -198,17 +228,17 @@ function listTasks(req, res, next) {
 
     if (data.length > 0) {
             console.log(data);
-        }   
+        }
 
     if (!data.length) {
             console.log('there was a problem');
             console.log(err);
             console.log("There is no tasks in the database. Did you initalize the database as stated in the README?");
-        } 
+        }
 
-    else { 
+    else {
 
-        res.json(data); 
+        res.json(data);
 
         }
   });
@@ -231,13 +261,13 @@ function MissingTaskError() {
 util.inherits(MissingTaskError, restify.RestError);
 
 
-function TaskExistsError(name) {
-        assert.string(name, 'name');
+function TaskExistsError(owner) {
+        assert.string(owner, 'owner');
 
         restify.RestError.call(this, {
                 statusCode: 409,
                 restCode: 'TaskExists',
-                message: name + ' already exists',
+                message: owner + ' already exists',
                 constructorOpt: TaskExistsError
         });
 
@@ -246,13 +276,13 @@ function TaskExistsError(name) {
 util.inherits(TaskExistsError, restify.RestError);
 
 
-function TaskNotFoundError(name) {
-        assert.string(name, 'name');
+function TaskNotFoundError(owner) {
+        assert.string(owner, 'owner');
 
         restify.RestError.call(this, {
                 statusCode: 404,
                 restCode: 'TaskNotFound',
-                message: name + ' was not found',
+                message: owner + ' was not found',
                 constructorOpt: TaskNotFoundError
         });
 
@@ -268,39 +298,7 @@ util.inherits(TaskNotFoundError, restify.RestError);
 
 var server = restify.createServer({
         name: "Windows Azure Active Directroy TODO Server",
-    version: "1.0.0",
-    formatters: {
-        'application/json': function(req, res, body){
-            if(req.params.callback){
-                var callbackFunctionName = req.params.callback.replace(/[^A-Za-z0-9_\.]/g, '');
-                return callbackFunctionName + "(" + JSON.stringify(body) + ");";
-            } else {
-                return JSON.stringify(body);
-            }
-        },
-        'text/html': function(req, res, body){
-            if (body instanceof Error)
-                        return body.stack;
-
-                      if (Buffer.isBuffer(body))
-                        return body.toString('base64');
-
-                return util.inspect(body);
-        },
-        'application/x-www-form-urlencoded': function(req, res, body){
-            if (body instanceof Error) {
-                    res.statusCode = body.statusCode || 500;
-                    body = body.message;
-            } else if (typeof (body) === 'object') {
-                body = body.task || JSON.stringify(body);
-            } else {
-                body = body.toString();
-            }
-
-        res.setHeader('Content-Length', Buffer.byteLength(body));
-        return (body);
-        }
-    }
+    version: "1.0.0"
 });
 
         // Ensure we don't drop data on uploads
@@ -327,16 +325,26 @@ var server = restify.createServer({
         server.use(restify.dateParser());
         server.use(restify.queryParser());
         server.use(restify.gzipResponse());
+        server.use(restify.bodyParser({ mapParams: true}));
+        server.use(restify.authorizationParser());
 
         /// Now the real handlers. Here we just CRUD
 
-        server.get('/tasks', passport.authenticate('provider', { session: false }), listTasks);
-        server.head('/tasks', passport.authenticate('provider', { session: false }), listTasks);
-        server.get('/tasks/:name', getTask);
-        server.head('/tasks/:name', getTask);
-        server.post('/tasks/:name/:task', createTask);
-        server.del('/tasks/:name/:task', removeTask);
-        server.del('/tasks/:name', removeTask);
+        if (opts.auth == "oauth2") { // Routes use bearer token strategy
+        server.get('/tasks', passport.authenticate('bearer', { session: false }), listTasks);
+        server.head('/tasks', passport.authenticate('bearer', { session: false }), listTasks);
+        }
+
+        else { // Routes default to open API so users may sanity test their app without auth first.
+        server.get('/tasks', listTasks);
+        server.head('/tasks', listTasks);
+        }
+        server.get('/tasks/:owner', getTask);
+        server.head('/tasks/:owner', getTask);
+        server.post('/tasks/:owner/:task', createTask);
+        server.post('/tasks', createTask);
+        server.del('/tasks/:owner/:task', removeTask);
+        server.del('/tasks/:owner', removeTask);
         server.del('/tasks', removeAll, function respond(req, res, next) { res.send(204); next(); });
 
 
@@ -345,96 +353,48 @@ var server = restify.createServer({
         server.get('/', function root(req, res, next) {
                 var routes = [
                         'GET     /',
-                        'POST    /tasks/:name/:task',
+                        'POST    /tasks/:owner/:task',
+                        'POST    /tasks (for JSON body)',
                         'GET     /tasks',
-                        'PUT     /tasks/:name',
-                        'GET     /tasks/:name',
-                        'DELETE  /tasks/:name/:task'
+                        'PUT     /tasks/:owner',
+                        'GET     /tasks/:owner',
+                        'DELETE  /tasks/:owner/:task'
                 ];
                 res.send(200, routes);
                 next();
         });
 
-        server.use(restify.authorizationParser());
-        server.use(restify.bodyParser({ mapParams: false }));
+
+
 
         // Now our own handlers for authentication/authorization
-        // Here we only use Oauth2 from Passport.js
+        // Here we only use Bearer strategy from Passport.js
 
-passport.use('provider', new OAuth2Strategy({
-    authorizationURL: authEndpoint,
-    tokenURL: tokenEndpoint,
-    clientID: clientID,
-    clientSecret: clientSecret,
-    callbackURL: callbackURL
-  },
-  function(accessToken, refreshToken, profile, done) {
-    User.findOrCreate({ UserId: profile.id }, function(err, user) {
-      done(err, user);
-    });
-  }
-));
+        passport.use(new BearerStrategy(
+          function(token, done) {
+            User.findOne({ token: token }, function (err, user) {
+              if (err) { return done(err); }
+              if (!user) { return done(null, false); }
+              return done(null, user, { scope: 'read' });
+            });
+          }
+        ));
 
 // Let's start using Passport.js
 
-server.use(passport.initialize());
-
-// Redirect the user to the OAuth 2.0 provider for authentication.  When
-// complete, the provider will redirect the user back to the application at
-//     /auth/provider/callback
-
-server.get('/auth/provider', passport.authenticate('provider'));
-
-// The OAuth 2.0 provider has redirected the user back to the application.
-// Finish the authentication process by attempting to obtain an access
-// token.  If authorization was granted, the user will be logged in.
-// Otherwise, authentication has failed.
-
-server.get('/auth/provider/callback', 
-  passport.authenticate('provider', { successRedirect: '/',
-                                      failureRedirect: '/login' }));
-
-
-// Simple route middleware to ensure user is authenticated.
-//   Use this route middleware on any resource that needs to be protected.  If
-//   the request is authenticated (typically via a persistent login session),
-//   the request will proceed.  Otherwise, the user will be redirected to the
-//   login page.
-
-var ensureAuthenticated = function(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.redirect('/login');
-};
-
-
-// Passport session setup.
-//   To support persistent login sessions, Passport needs to be able to
-//   serialize users into and deserialize users out of the session.  Typically,
-//   this will be as simple as storing the user ID when serializing, and finding
-//   the user by ID when deserializing.
-passport.serializeUser(function(user, done) {
-  done(null, user.email);
-});
-
-passport.deserializeUser(function(id, done) {
-  findByEmail(id, function (err, user) {
-    done(err, user);
-  });
-});
+ server.use(passport.initialize());
 
 
 
   server.listen(serverPort, function() {
 
   var consoleMessage = '\n Windows Azure Active Directory Tutorial'
-  consoleMessage += '\n +++++++++++++++++++++++++++++++++++++++++++++++++++++' 
+  consoleMessage += '\n +++++++++++++++++++++++++++++++++++++++++++++++++++++'
   consoleMessage += '\n %s server is listening at %s';
   consoleMessage += '\n Open your browser to %s/tasks\n';
   consoleMessage += '+++++++++++++++++++++++++++++++++++++++++++++++++++++ \n'
   consoleMessage += '\n !!! why not try a $curl -isS %s | json to get some ideas? \n'
-  consoleMessage += '+++++++++++++++++++++++++++++++++++++++++++++++++++++ \n\n'  
+  consoleMessage += '+++++++++++++++++++++++++++++++++++++++++++++++++++++ \n\n'
 
   console.log(consoleMessage, server.name, server.url, server.url, server.url);
 

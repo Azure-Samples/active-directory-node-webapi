@@ -1,10 +1,10 @@
 #Windows Azure Active Directory Sample REST API Service for Node.js using MongoDB and Restify
 
-This Node.js server will give you with a quick and easy way to set up a REST API Service that's integrated with Windows Azure Active Directory for API protection using the OAuth2 protocol. The sample server included in the download are designed to run on any platform.
+This Node.js server will give you with a quick and easy way to set up a REST API Service that's integrated with Windows Azure Active Directory for API protection using the OAuth2 protocol using bearer tokens. The sample server included in the download are designed to run on any platform.
 
 This REST API server is built using Restify and MongoDB with the following features:
 
-* A node.js server running an REST API interface with JSON using MongoDB as persistant storage
+* A node.js server running an REST API interface with JSON using MongoDB as persistent storage
 * REST APIs leveraging OAuth2 API protection for endpoints using Windows Azure Active Directory
 
 [Refer to our Wiki](https://github.com/AzureADSamples/WebAPI-Nodejs/wiki) for detailed walkthroughs on how to use this server.
@@ -13,12 +13,12 @@ We've released all of the source code for this example in GitHub under an Apache
 
 ## How to Use The Service
 
-This is a simple TODO Server that takes requests through GET and POST and responds with the appropriate JSON objects. 
+This is a simple TODO Server that takes JSON requests through REST and responds with the appropriate JSON objects.
 
 #### To use this without Authentication (for testing the endpoints without Authentication)
 
 	$ node server.js
-	
+
 	$ curl -isS http://127.0.0.1:8888 | json
 	HTTP/1.1 200 OK
 	Connection: close
@@ -29,20 +29,21 @@ This is a simple TODO Server that takes requests through GET and POST and respon
 	[
   	"GET     /",
   	"POST    /tasks/:name/:task",
+		"POST		 /tasks (for JSON body)",
   	"GET     /tasks",
   	"DELETE  /tasks",
   	"PUT     /tasks/:name",
   	"GET     /tasks/:name",
   	"DELETE  /tasks/:task"
 	]
-	
+
 #### To invoke with OAuth2 Authentication (for use with Windows Azure AD)
-	
+
 	$ node server.js -m oauth2
 
 ## Quick Start
 
-Getting started with the sample is easy. It is configured to run out of the box with minimal setup. 
+Getting started with the sample is easy. It is configured to run out of the box with minimal setup.
 
 ### Step 1: Register a Windows Azure AD Tenant
 
@@ -55,16 +56,16 @@ After you get your Windows Azure AD tenant, add this sample app to your tenant s
 ### Step 3: Download node.js for your platform
 To successfully use this sample, you need a working installation of Node.js.
 
-Install Node.js from [http://nodejs.org](http://nodejs.org). 
+Install Node.js from [http://nodejs.org](http://nodejs.org).
 
 ### Step 4: Install MongoDB on to your platform
 
 To successfully use this sample, you must have a working installation of MongoDB. We will use MongoDB to make our REST API persistant across server instances.
 
-Install MongoDB from [http://mongodb.org](http://www.mongodb.org). 
+Install MongoDB from [http://mongodb.org](http://www.mongodb.org).
 
 **NOTE:** This walkthrough assumes that you use the default installation and server endpoints for MongoDB, which at the time of this writing is: mongodb://localhost
- 
+
 
 ### Step 5: Download the Sample application and modules
 
@@ -82,7 +83,7 @@ From your shell or command line:
 * `$ node server.js`
 
 
-### Acknowledgements 
+### Acknowledgements
 
 We would like to acknowledge the folks who own/contribute to the following projects for their support of Windows Azure Active Directory and their libraries that were used to build this sample. In places where we forked these libraries to add additional functionality, we ensured that the chain of forking remains intact so you can navigate back to the original package. Working with such great partners in the open source community clearly illustrates what open collaboration can accomplish. Thank you!
 
@@ -98,4 +99,3 @@ We would like to acknowledge the folks who own/contribute to the following proje
 ## About The Code
 
 Code hosted on GitHub under Apache 2.0 license
-

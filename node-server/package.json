@@ -1,6 +1,6 @@
 {
-  "name": "azure-activedirectory-library-for-ios",
-  "version": "0.0.1",
+  "name": "WebAPI-Nodejs",
+  "version": "1.0.0",
   "licenses": [
     {
       "type": "Apache 2.0",
@@ -21,7 +21,7 @@
   "author": {
     "name": "Brandon Werner",
     "email": "brandon.werner@microsoft.com",
-    "url": "http://msopentech.com/"
+    "url": "http://microsoft.com/"
   },
   "dependencies": {
     "restify": "*",
@@ -29,7 +29,7 @@
     "underscore": "*",
     "crypto": "*",
     "assert-plus": "*",
-    "posix-getopt": "*",    
+    "posix-getopt": "*",
     "mongoose": "*",
     "mongodb" : "*",
     "util" : "*",
@@ -37,6 +37,7 @@
     "connect": "*",
     "passport": "*",
     "passport-oauth": "*",
+    "passport-http-bearer": "*",
     "xml2js": "0.2.6",
     "xml-crypto": "0.0.x",
     "xmldom": "0.1.x",
