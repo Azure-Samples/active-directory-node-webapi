@@ -38,52 +38,16 @@
 */
 
  var passport = require('passport')
-  , OAuth2Strategy = require('passport-oauth').OAuth2Strategy
-  , BearerStrategy = require('passport-http-bearer').Strategy;
-
-/**
-* Simple command line interface to help people turn on Auth on the TODO server.
-*/
-
-var parser = new getopt.BasicParser('hvd:a:m:h:', process.argv);
-var option;
-var opts = {}
-while ((option = parser.getopt()) !== undefined) {
-        switch (option.option) {
-            case 'm':
-                opts.auth = option.optarg;
-                break;
-
-            case 'h':
-                usage();
-                break;
-
-            case 'p':
-                opts.port = parseInt(option.optarg, 10);
-                break;
-
-            default:
-                usage('invalid option: ' + option.option);
-                break;
-        }
-    }
-
-    function usage(msg) {
-        if (msg)
-            console.error(msg);
-
-        var str = 'usage: ' +
-            'node server.js ' +
-            ' [-p port] [-m authtype ]';
-        console.error(str);
-        process.exit(msg ? 1 : 0);
-    }
+  , BearerStrategy = require('passport-http-bearer')
+  , JwtBearerStrategy = require('./lib/jwt_strategy')
+  , jwt = require('jsonwebtoken');
 
 /**
 * Setup some configuration
 */
-var serverPort = (process.env.PORT) ? opts.port : 8888;
+var serverPort = process.env.PORT || 8888;
 var serverURI = ( process.env.PORT ) ? config.creds.mongoose_auth_mongohq : config.creds.mongoose_auth_local;
+
 
 /**
 *
@@ -330,15 +294,8 @@ var server = restify.createServer({
 
         /// Now the real handlers. Here we just CRUD
 
-        if (opts.auth == "oauth2") { // Routes use bearer token strategy
-        server.get('/tasks', passport.authenticate('bearer', { session: false }), listTasks);
-        server.head('/tasks', passport.authenticate('bearer', { session: false }), listTasks);
-        }
-
-        else { // Routes default to open API so users may sanity test their app without auth first.
-        server.get('/tasks', listTasks);
-        server.head('/tasks', listTasks);
-        }
+        server.get('/tasks', passport.authenticate('jwt-bearer', { session: false }), listTasks);
+        server.head('/tasks', passport.authenticate('jwt-bearer', { session: false }), listTasks);
         server.get('/tasks/:owner', getTask);
         server.head('/tasks/:owner', getTask);
         server.post('/tasks/:owner/:task', createTask);
@@ -364,18 +321,68 @@ var server = restify.createServer({
                 next();
         });
 
+//         module.exports.policies = {
+//           // Default policy for all controllers and actions
+//           '*': 'authenticated'
+//         };
+//
+//         module.exports = function (req, res, done) {
+//   passport.authenticate('bearer', {session: false}, function(err, user, info) {
+//     if (err) return done(err);
+//     if (user) return done();
+//
+//     return res.send(403, {message: "You are not permitted to perform this action."});
+//   })(req, res);
+// };
+
+        /**
+         * BearerStrategy
+         *
+         * This strategy is used to authenticate either users or clients based on an access token
+         * (aka a bearer token).  If a user, they must have previously authorized a client
+         * application, which is issued an access token to make requests on behalf of
+         * the authorizing user.
+         */
+        passport.use('bearer', new BearerStrategy(
+          function(accessToken, done) {
+            Tokens.findOne({token: accessToken}, function(err, token) {
+              if (err) return done(err);
+              if (!token) return done(null, false);
+              if (token.userId != null) {
+                Users.find(token.userId, function(err, user) {
+                  if (err) return done(err);
+                  if (!user) return done(null, false);
+                  // to keep this example simple, restricted scopes are not implemented,
+                  // and this is just for illustrative purposes
+                  var info = { scope: '*' }
+                  done(null, user, info);
+                });
+              }
+              else {
+                //The request came from a client only since userId is null
+                //therefore the client is passed back instead of a user
+                Clients.find({clientId: token.clientId}, function(err, client) {
+                  if (err) return done(err);
+                  if (!client) return done(null, false);
+                  // to keep this example simple, restricted scopes are not implemented,
+                  // and this is just for illustrative purposes
+                  var info = { scope: '*' }
+                  done(null, client, info);
+                });
+              }
+            });
+          }
+        ));
 
 
 
-        // Now our own handlers for authentication/authorization
-        // Here we only use Bearer strategy from Passport.js
-
-        passport.use(new BearerStrategy(
+        passport.use(new JwtBearerStrategy(
+          config.creds.secret_key,
           function(token, done) {
-            User.findOne({ token: token }, function (err, user) {
+            User.findById(token.sub, function (err, user) {
               if (err) { return done(err); }
               if (!user) { return done(null, false); }
-              return done(null, user, { scope: 'read' });
+              return done(null, user, token);
             });
           }
         ));
