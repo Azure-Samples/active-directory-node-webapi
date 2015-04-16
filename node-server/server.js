@@ -39,8 +39,7 @@
 
  var passport = require('passport')
   , BearerStrategy = require('passport-http-bearer')
-  , JwtBearerStrategy = require('./lib/jwt_strategy')
-  , jwt = require('jsonwebtoken');
+  , OIDCBearerStrategy = require('./lib/odic_strategy');
 
 /**
 * Setup some configuration
@@ -294,8 +293,8 @@ var server = restify.createServer({
 
         /// Now the real handlers. Here we just CRUD
 
-        server.get('/tasks', passport.authenticate('jwt-bearer', { session: false }), listTasks);
-        server.head('/tasks', passport.authenticate('jwt-bearer', { session: false }), listTasks);
+        server.get('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
+        server.head('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
         server.get('/tasks/:owner', getTask);
         server.head('/tasks/:owner', getTask);
         server.post('/tasks/:owner/:task', createTask);
@@ -343,41 +342,41 @@ var server = restify.createServer({
          * application, which is issued an access token to make requests on behalf of
          * the authorizing user.
          */
-        passport.use('bearer', new BearerStrategy(
-          function(accessToken, done) {
-            Tokens.findOne({token: accessToken}, function(err, token) {
-              if (err) return done(err);
-              if (!token) return done(null, false);
-              if (token.userId != null) {
-                Users.find(token.userId, function(err, user) {
-                  if (err) return done(err);
-                  if (!user) return done(null, false);
-                  // to keep this example simple, restricted scopes are not implemented,
-                  // and this is just for illustrative purposes
-                  var info = { scope: '*' }
-                  done(null, user, info);
-                });
-              }
-              else {
-                //The request came from a client only since userId is null
-                //therefore the client is passed back instead of a user
-                Clients.find({clientId: token.clientId}, function(err, client) {
-                  if (err) return done(err);
-                  if (!client) return done(null, false);
-                  // to keep this example simple, restricted scopes are not implemented,
-                  // and this is just for illustrative purposes
-                  var info = { scope: '*' }
-                  done(null, client, info);
-                });
-              }
-            });
-          }
-        ));
+        // passport.use('bearer', new BearerStrategy(
+        //   function(accessToken, done) {
+        //     Tokens.findOne({token: accessToken}, function(err, token) {
+        //       if (err) return done(err);
+        //       if (!token) return done(null, false);
+        //       if (token.userId != null) {
+        //         Users.find(token.userId, function(err, user) {
+        //           if (err) return done(err);
+        //           if (!user) return done(null, false);
+        //           // to keep this example simple, restricted scopes are not implemented,
+        //           // and this is just for illustrative purposes
+        //           var info = { scope: '*' }
+        //           done(null, user, info);
+        //         });
+        //       }
+        //       else {
+        //         //The request came from a client only since userId is null
+        //         //therefore the client is passed back instead of a user
+        //         Clients.find({clientId: token.clientId}, function(err, client) {
+        //           if (err) return done(err);
+        //           if (!client) return done(null, false);
+        //           // to keep this example simple, restricted scopes are not implemented,
+        //           // and this is just for illustrative purposes
+        //           var info = { scope: '*' }
+        //           done(null, client, info);
+        //         });
+        //       }
+        //     });
+        //   }
+        // ));
 
 
 
-        passport.use(new JwtBearerStrategy(
-          config.creds.secret_key,
+        passport.use(new OIDCBearerStrategy(
+          { meatadataurl: config.creds.openid_configuration },
           function(token, done) {
             User.findById(token.sub, function (err, user) {
               if (err) { return done(err); }
