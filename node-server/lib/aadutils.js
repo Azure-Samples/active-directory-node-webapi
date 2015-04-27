@@ -45,7 +45,9 @@ exports.getElement = function (parentElement, elementName) {
     return parentElement['samlp:'+elementName];
   } else if (parentElement['wsa:' + elementName]) {
     return parentElement['wsa:' + elementName];
-  }
+  } else if (parentElement['oidc:' + elementName]) {
+  return parentElement['oidc:' + elementName];
+}
   return parentElement[elementName];
 };
 
@@ -59,6 +61,8 @@ exports.getFirstElement = function (parentElement, elementName) {
     element =  parentElement['samlp:'+elementName];
   } else if (parentElement['wsa:' + elementName]) {
     element =  parentElement['wsa:' + elementName];
+  } else if (parentElement['oidc:' + elementName]) {
+    element =  parentElement['oidc:' + elementName];
   } else {
     element = parentElement[elementName];
   }

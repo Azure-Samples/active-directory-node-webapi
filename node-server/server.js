@@ -27,24 +27,31 @@
     var assert = require('assert-plus');
     var bunyan = require('bunyan');
     var getopt = require('posix-getopt');
-    var mongoose = require('mongoose/');
     var restify = require('restify');
     var getopt = require('posix-getopt');
     var config = require('./config');
 
+    // array to hold logged in users
+    var users = [];
 
+    // Our logger
+    var log = bunyan.createLogger({name: 'Windows Azure Active Directory Tutorial'});
 /**
 * Load Passport for OAuth2 flows
 */
 
  var passport = require('passport')
-  , BearerStrategy = require('passport-http-bearer')
-  , OIDCBearerStrategy = require('./lib/odic_strategy');
+  , OIDCBearerStrategy = require('./lib/oidc_strategy');
+
+
+
+try { // MongoDB setup
 
 /**
 * Setup some configuration
 */
-var serverPort = process.env.PORT || 8888;
+var mongoose = require('mongoose/');
+var serverPort = process.env.PORT || 80;
 var serverURI = ( process.env.PORT ) ? config.creds.mongoose_auth_mongohq : config.creds.mongoose_auth_local;
 
 
@@ -55,9 +62,11 @@ var serverURI = ( process.env.PORT ) ? config.creds.mongoose_auth_mongohq : conf
 
 global.db = mongoose.connect(serverURI);
 var Schema = mongoose.Schema;
+log.info('MongoDB Schema loaded');
+
 
 /**
-/ Here we create a schema to store our tasks. Pretty simple schema for now.
+/ Here we create a schema to store our tasks and users. Pretty simple schema for now.
 */
 
 var TaskSchema = new Schema({
@@ -67,10 +76,19 @@ var TaskSchema = new Schema({
   date: Date
 });
 
+
 // Use the schema to register a model
 
 mongoose.model('Task', TaskSchema);
 var Task = mongoose.model('Task');
+
+}
+
+catch(err) {
+
+log.warn("MongoDB error. Did you intall MongoDB?" + err);
+
+}
 
 /**
  *
@@ -93,12 +111,6 @@ function createTask(req, res, next) {
           next(new MissingTaskError());
           return;
       }
-
-        if (Task.find(req.params.task)) {
-                req.log.warn('%s already exists', req.params.task);
-                next(new TaskExistsError(req.params.task));
-                return;
-        }
 
 
   _task.owner = req.params.owner;
@@ -182,7 +194,7 @@ function listTasks(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
-  console.log("server getTasks");
+  log.info("server getTasks");
 
   Task.find().limit(20).sort('date').exec(function (err,data) {
 
@@ -190,13 +202,11 @@ function listTasks(req, res, next) {
       return next(err);
 
     if (data.length > 0) {
-            console.log(data);
+            log.info(data);
         }
 
     if (!data.length) {
-            console.log('there was a problem');
-            console.log(err);
-            console.log("There is no tasks in the database. Did you initalize the database as stated in the README?");
+            log.warn(err, "There is no tasks in the database. Did you initalize the database as stated in the README?");
         }
 
     else {
@@ -293,8 +303,8 @@ var server = restify.createServer({
 
         /// Now the real handlers. Here we just CRUD
 
-        server.get('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
-        server.head('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
+        server.get('/tasks', listTasks);
+        server.head('/tasks', listTasks);
         server.get('/tasks/:owner', getTask);
         server.head('/tasks/:owner', getTask);
         server.post('/tasks/:owner/:task', createTask);
@@ -374,17 +384,35 @@ var server = restify.createServer({
         // ));
 
 
-
-        passport.use(new OIDCBearerStrategy(
-          { meatadataurl: config.creds.openid_configuration },
-          function(token, done) {
-            User.findById(token.sub, function (err, user) {
-              if (err) { return done(err); }
-              if (!user) { return done(null, false); }
-              return done(null, user, token);
-            });
-          }
-        ));
+        // var findByEmail = function (email, fn) {
+        //   log.info(email, 'being searched for in server user registration')
+        //   for (var i = 0, len = users.length; i < len; i++) {
+        //     var user = users[i];
+        //     if (user.email === email) {
+        //       log.info(user, 'was found and returned.')
+        //       return fn(null, user);
+        //     }
+        //   }
+        //   log.info('no user found for the email address provided')
+        //   return fn(null, null);
+        // };
+        //
+        // passport.use(new OIDCBearerStrategy(
+        //   { metadataurl: config.creds.openid_configuration },
+        //   function(token, done) {
+        //     findByEmail(token.email, function (err, user) {
+        //       if (err) { return done(err); }
+        //       if (!user) {
+        //   log.warn('No user was found so we are adding one and authorizing them. If you want to control authorization to the server (recommended) implement an allowed user list.');
+        //   log.info(token.email, 'was registered as a new user for the system.');
+        //   users.push(token);
+        //   return done(null, token);
+        // }
+        // log.info(user, 'was found as an exisitng user for the server. Authorization successful')
+        // return done(null, user);
+        //     });
+        //   }
+        // ));
 
 // Let's start using Passport.js
 
