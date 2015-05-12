@@ -15,111 +15,123 @@
  limitations under the License.
  */
 
-'use strict';
+"use strict";
 
+var bunyan = require('bunyan');
+var passport = require('passport');
+var BearerStrategy = require('passport-http-bearer').Strategy
+var util = require('util');
 var pem = require('./pem');
-var Metadata = require('./metadata').Metadata;
-var zlib = require('zlib');
-var xml2js = require('xml2js');
-var xmlCrypto = require('xml-crypto');
 var crypto = require('crypto');
-var xmldom = require('xmldom');
 var querystring = require('querystring');
 var async = require('async');
-var jwt = require('jsonwebtoken')
-var util = require('util');
-var BearerStrategy = require('passport-http-bearer').Strategy
+var jwt = require('jsonwebtoken');
+var request = require('request');
+var Metadata = require('./metadata').Metadata;
+
+var log = bunyan.createLogger({name: 'Microsoft OpenID Connect Passport Strategy'});
+
+function Strategy(options, callback, verify) {
+
+// You can provide your own cert if you don't want to use Azure AD's certificate from our Identity servers (just in case you're using this for your own things!)
+
+if(options.publicCert) {
+  options.certificate = pem.getCertificate(options.publicCert);
+}
+
+if(options.metadataurl) {
+
+  log.info(options.metadataurl, 'metadata url provided to Strategy');
+  this.metadata = new Metadata(options.metadataurl, "odic");
+}
+
+if (!options.certificate && !options.metadataurl) {
+  log.warn("No options was presented to Strategy as required.")
+   throw new TypeError('OIDCBearerStrategy requires either a PEM encoded public key or a metadata location that contains cert data for RSA and ECDSA callback.');
+ }
 
 
-function Strategy(options, verify) {
+if (typeof callback == 'function') {
+   verify = callback;
+//   callback = {};
+ }
 
-  this.name = 'oidc-bearer'; // What we call ourselves for callbacks.
+    // Passport requires a verify function
 
-  // Ensure we've been based a key.
+    if (!verify) {
+      throw new TypeError('OIDCBearerStrategy requires a verify callback. Do not cheat!');
+    }
 
+    this.metadata.fetch(callback);
+    log.info(this.metadata,'Metadata returned');
 
-  if (typeof options == 'function') {
-    verify = options;
-    options = {};
-  }
+function requestToUrl(callback) {
 
-  // Passport requires a verify function
-
-  if (!verify) {
-    throw new TypeError('OIDCBearerStrategy requires a verify callback');
-  }
-
-  if (!options.protocol) {
-    options.protocol = 'https://';
-  }
-
-  // You can provide your own cert if you don't want to use Azure AD's certificate from our Identity servers (just in case you're using this for your own things!)
-
-  if(options.publicCert) {
-    options.certificate = pem.getCertificate(options.publicCert);
-  } else {
-    options.certificate = '';
-  }
-
-  // Otherwise we do the work for you and pull the certs out of a JSON metadata endpoint. 
-
-  if(options.metadataurl) {
-    options.certificate = metadata(options.metadataurl);
-  } else {
-    options.certificate = '';
-  }
-
-  // if (!secretOrPublicKey || (typeof secretOrPublicKey != 'string' && !(secretOrPublicKey instanceof Buffer))) {
-  //   throw new TypeError('OIDCBearerStrategy requires a string or buffer containing either the secret for HMAC algorithms, or the PEM encoded public key for RSA and ECDSA callback');
-  // }
-
-  // Done with options
-
-  // Pull the certificate from URL
-
-  //
+  async.waterfall([
+    function(next){
+      if(!this.metadata.saml0) {
+        this.metadata.fetch(next);
+        } else {
+          next(null);
+        }
+        target = "";
+        console.log(this.metadata);
+        }
+      ], function (err, target) {
+        return callback(err, target);
+      });
+    }
 
 
-  var strategy = this;
+
+
+
+
+
+
 
   function jwtVerify(req, token, done) {
-    if (!options.passReqToCallback) {
-      token = arguments[0];
-      done = arguments[1];
-      req = null;
-    }
-    jwt.verify(token, options.certificate, {algorithms: ["RS256"]}, function (err, token) {
-      if (err) {
-        if (err instanceof jwt.TokenExpiredError) {
-          done(null, false, 'The access token expired');
-        }
-        else if (err instanceof jwt.JsonWebTokenError) {
-          console.log(err.message)
-          done(null, false, util.format('Invalid token (%s)', err.message));
-        }
-        else {
-          done(err, false);
-        }
-      } else {
-        if (options.passReqToCallback) {
-          verify(req, token, done);
-        } else {
-          verify(token, done);
-        }
-      }
-    });
+  if (!options.passReqToCallback) {
+    token = arguments[0];
+    done = arguments[1];
+    req = null;
   }
 
-  BearerStrategy.call(this, options, jwtVerify);
+  requestToUrl(callback);
+  //  return pem.certToPEM(cert);
+  var PEMkey = "";
 
-
+  jwt.verify(token, PEMkey, options, function (err, token) {
+    if (err) {
+      if (err instanceof jwt.TokenExpiredError) {
+        log.warn('The access token provided to the server was expired');
+        done(null, false, 'The access token expired');
+      }
+      else if (err instanceof jwt.JsonWebTokenError) {
+        log.warn('Invalid token was provided to server: ' + err.message);
+        done(null, false, util.format('Invalid token (%s)', err.message));
+      }
+      else {
+        done(err, false);
+      }
+    } else {
+      if (options.passReqToCallback) {
+        verify(req, token, done);
+      } else {
+        verify(token, done);
+      }
+    }
+  });
 }
-/**
- * Inherit from `BearerStrategy`.
- */
-util.inherits(Strategy, BearerStrategy);
 
-/**
- * Expose `Strategy`.
- */
-module.exports = Strategy;
+
+    BearerStrategy.call(this, options, jwtVerify);
+
+    this.name = 'oidc-bearer'; // Me, a name I call myself.
+}
+
+util.inherits(Strategy, BearerStrategy);
+    /**
+     * Expose `Strategy`.
+     */
+    module.exports = Strategy;

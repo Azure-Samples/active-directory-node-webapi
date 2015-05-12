@@ -27,23 +27,30 @@
     var assert = require('assert-plus');
     var bunyan = require('bunyan');
     var getopt = require('posix-getopt');
-    var mongoose = require('mongoose/');
     var restify = require('restify');
     var getopt = require('posix-getopt');
     var config = require('./config');
 
+    // array to hold logged in users
+    var users = [];
 
+    // Our logger
+    var log = bunyan.createLogger({name: 'Windows Azure Active Directory Tutorial'});
 /**
 * Load Passport for OAuth2 flows
 */
 
  var passport = require('passport')
-  , BearerStrategy = require('passport-http-bearer')
-  , OIDCBearerStrategy = require('./lib/odic_strategy');
+  , OIDCBearerStrategy = require('./lib/oidc_strategy');
+
+
+
+try { // MongoDB setup
 
 /**
 * Setup some configuration
 */
+var mongoose = require('mongoose/');
 var serverPort = process.env.PORT || 8888;
 var serverURI = ( process.env.PORT ) ? config.creds.mongoose_auth_mongohq : config.creds.mongoose_auth_local;
 
@@ -55,9 +62,11 @@ var serverURI = ( process.env.PORT ) ? config.creds.mongoose_auth_mongohq : conf
 
 global.db = mongoose.connect(serverURI);
 var Schema = mongoose.Schema;
+log.info('MongoDB Schema loaded');
+
 
 /**
-/ Here we create a schema to store our tasks. Pretty simple schema for now.
+/ Here we create a schema to store our tasks and users. Pretty simple schema for now.
 */
 
 var TaskSchema = new Schema({
@@ -67,10 +76,19 @@ var TaskSchema = new Schema({
   date: Date
 });
 
+
 // Use the schema to register a model
 
 mongoose.model('Task', TaskSchema);
 var Task = mongoose.model('Task');
+
+}
+
+catch(err) {
+
+log.warn("MongoDB error. Did you intall MongoDB?" + err);
+
+}
 
 /**
  *
@@ -182,7 +200,7 @@ function listTasks(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
-  console.log("server getTasks");
+  log.info("server getTasks");
 
   Task.find().limit(20).sort('date').exec(function (err,data) {
 
@@ -190,13 +208,11 @@ function listTasks(req, res, next) {
       return next(err);
 
     if (data.length > 0) {
-            console.log(data);
+            log.info(data);
         }
 
     if (!data.length) {
-            console.log('there was a problem');
-            console.log(err);
-            console.log("There is no tasks in the database. Did you initalize the database as stated in the README?");
+            log.warn(err, "There is no tasks in the database. Did you initalize the database as stated in the README?");
         }
 
     else {
@@ -293,14 +309,15 @@ var server = restify.createServer({
 
         /// Now the real handlers. Here we just CRUD
 
-        server.get('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
-        server.head('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
+        server.get('/tasks', listTasks);
+        server.head('/tasks', listTasks);
         server.get('/tasks/:owner', getTask);
         server.head('/tasks/:owner', getTask);
         server.post('/tasks/:owner/:task', createTask);
         server.post('/tasks', createTask);
         server.del('/tasks/:owner/:task', removeTask);
         server.del('/tasks/:owner', removeTask);
+        server.del('/tasks', removeTask);
         server.del('/tasks', removeAll, function respond(req, res, next) { res.send(204); next(); });
 
 
@@ -320,71 +337,20 @@ var server = restify.createServer({
                 next();
         });
 
-//         module.exports.policies = {
-//           // Default policy for all controllers and actions
-//           '*': 'authenticated'
-//         };
-//
-//         module.exports = function (req, res, done) {
-//   passport.authenticate('bearer', {session: false}, function(err, user, info) {
-//     if (err) return done(err);
-//     if (user) return done();
-//
-//     return res.send(403, {message: "You are not permitted to perform this action."});
-//   })(req, res);
-// };
+         module.exports.policies = {
+           // Default policy for all controllers and actions
+           '*': 'authenticated'
+         };
 
-        /**
-         * BearerStrategy
-         *
-         * This strategy is used to authenticate either users or clients based on an access token
-         * (aka a bearer token).  If a user, they must have previously authorized a client
-         * application, which is issued an access token to make requests on behalf of
-         * the authorizing user.
-         */
-        // passport.use('bearer', new BearerStrategy(
-        //   function(accessToken, done) {
-        //     Tokens.findOne({token: accessToken}, function(err, token) {
-        //       if (err) return done(err);
-        //       if (!token) return done(null, false);
-        //       if (token.userId != null) {
-        //         Users.find(token.userId, function(err, user) {
-        //           if (err) return done(err);
-        //           if (!user) return done(null, false);
-        //           // to keep this example simple, restricted scopes are not implemented,
-        //           // and this is just for illustrative purposes
-        //           var info = { scope: '*' }
-        //           done(null, user, info);
-        //         });
-        //       }
-        //       else {
-        //         //The request came from a client only since userId is null
-        //         //therefore the client is passed back instead of a user
-        //         Clients.find({clientId: token.clientId}, function(err, client) {
-        //           if (err) return done(err);
-        //           if (!client) return done(null, false);
-        //           // to keep this example simple, restricted scopes are not implemented,
-        //           // and this is just for illustrative purposes
-        //           var info = { scope: '*' }
-        //           done(null, client, info);
-        //         });
-        //       }
-        //     });
-        //   }
-        // ));
+         module.exports = function (req, res, done) {
+   passport.authenticate('bearer', {session: false}, function(err, user, info) {
+     if (err) return done(err);
+     if (user) return done();
 
+     return res.send(403, {message: "You are not permitted to perform this action."});
+   })(req, res);
+ };
 
-
-        passport.use(new OIDCBearerStrategy(
-          { meatadataurl: config.creds.openid_configuration },
-          function(token, done) {
-            User.findById(token.sub, function (err, user) {
-              if (err) { return done(err); }
-              if (!user) { return done(null, false); }
-              return done(null, user, token);
-            });
-          }
-        ));
 
 // Let's start using Passport.js
 
