@@ -112,13 +112,6 @@ function createTask(req, res, next) {
           return;
       }
 
-        if (Task.find(req.params.task)) {
-                req.log.warn('%s already exists', req.params.task);
-                next(new TaskExistsError(req.params.task));
-                return;
-        }
-
-
   _task.owner = req.params.owner;
    _task.task = req.params.task;
    _task.date = new Date();
