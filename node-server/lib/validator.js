@@ -22,7 +22,7 @@
 // Logging
 
 var bunyan = require('bunyan');
-var log = bunyan.createLogger({name: 'Microsoft OpenID Connect Passport Strategy'});
+var log = bunyan.createLogger({name: 'Microsoft OpenID Connect Passport Strategy Validator'});
 
 var types = {};
 

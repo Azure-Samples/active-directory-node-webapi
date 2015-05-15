@@ -25,7 +25,7 @@ var async = require('async');
 // Logging
 
 var bunyan = require('bunyan');
-var log = bunyan.createLogger({name: 'Microsoft OpenID Connect Passport Strategy'});
+var log = bunyan.createLogger({name: 'Microsoft OpenID Connect: Passport Strategy: Metadata Parser'});
 
 var Metadata = function (url, authtype) {
 
@@ -40,7 +40,7 @@ var Metadata = function (url, authtype) {
   this.url = url;
   this.metadata = null;
   this.authtype = authtype;
-  log.info(authtype, 'Metadata requested for authentication type');
+  log.info('Metadata requested for authentication type', authtype);
 };
 
 Object.defineProperty(Metadata, 'url', {
@@ -104,14 +104,13 @@ Metadata.prototype.updateOidcMetadata = function(doc, next) {
   try {
     this.oidc = {};
 
-    var issuer = doc['issuer'];
-    var keyDescriptor = aadutils.getElement(idp[0], 'keys');
+    this.oidc.issuer = doc['issuer'];
+    this.oidc.keyURL = doc['jwks_uri'];
+    this.oidc.algorithm = doc['id_token_signing_alg_values_supported'];
 
-    // copy the x509 certs from the metadata
-    this.oidc.certs = [];
-    for (var j=0;j<keyDescriptor.length;j++) {
-      this.oidc.certs.push(keyDescriptor[j].KeyInfo[0].X509Data[0].X509Certificate[0]);
-    }
+    log.info("algorithm we will use is: ", this.oidc.algorithm);
+    log.info("the Keys are located at: ", this.oidc.keyURL);
+
     next(null);
   } catch (e) {
     next(new Error('Invalid Open ID Connect Federation Metadata ' + e.message));
@@ -160,12 +159,18 @@ Metadata.prototype.fetch = function(callback) {
         } else if(response.statusCode !== 200) {
           next(new Error("Error:" + response.statusCode +  " Cannot get AAD Federation metadata from " + self.url));
         } else {
-          log.info(body, "retreived");
+          log.info("***********");
+          log.info("");
+          log.info(body);
+          log.info("");
+          log.info("***********");
           next(null, body);
         }
       });
     },
     function(body, next){
+
+      log.info("Parsing metadata for authtype: " + self.authtype);
       // parse the AAD Federation metadata xml
 
       if(self.authtype == "saml" || self.authtype == "wsfed") {
@@ -177,34 +182,28 @@ Metadata.prototype.fetch = function(callback) {
         next(err);
 
       });
+
     } else if(self.authtype == "oidc") {
-      log.info(body, "Parsing JSON retreived from the endpoint");
-      JSON.parse(body, function (err, data) {
-        self.metatdata = data;
-        next(err);
-      });
+      log.info("Parsing JSON retreived from the endpoint");
+      self.metadata =  JSON.parse(body);
 
-    } else {
+    } else { next(new Error("No Authentication type specified to metadata parser. Valid types are saml, wsfed, or odic")); }
 
-       next(new Error("Error: No Authentication type specified to metadata parser. Valid types are saml, wsfed, or odic"));
-    }
-
-    },
-
+  },
     function(next){
-      if(self.authtype = "saml") {
+      if(self.authtype == "saml") {
       // update the SAML SSO endpoints and certs from the metadata
       self.updateSamlMetadata(self.metatdata, next);
     }},
     function(next){
-      if(self.authtype = "wsfed") {
+      if(self.authtype == "wsfed") {
       // update the SAML SSO endpoints and certs from the metadata
       self.updateWsfedMetadata(self.metatdata, next);
     }},
     function(next){
-      if(self.authtype = "oidc") {
+      if(self.authtype == "oidc") {
       self.updateOidcMetadata(self.metadata, next);
-    }},
+    }}
   ], function (err) {
     // return err or success (err === null) to callback
     callback(err);

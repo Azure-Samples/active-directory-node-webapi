@@ -29,9 +29,56 @@ var jwt = require('jsonwebtoken');
 var request = require('request');
 var Metadata = require('./metadata').Metadata;
 
-var log = bunyan.createLogger({name: 'Microsoft OpenID Connect Passport Strategy'});
+var log = bunyan.createLogger({name: 'Microsoft OpenID Connect: Passport Strategy'});
+/**
+* Applications must supply a `verify` callback, for which the function
+* signature is:
+*
+*     function(token, done) { ... }
+*
+* `token` is the verified and decoded bearer token provided as a credential.
+* The verify callback is responsible for finding the user who posesses the
+* token, and invoking `done` with the following arguments:
+*
+*     done(err, user, info);
+*
+* If the token is not valid, `user` should be set to `false` to indicate an
+* authentication failure.  Additional token `info` can optionally be passed as
+* a third argument, which will be set by Passport at `req.authInfo`, where it
+* can be used by later middleware for access control.  This is typically used
+* to pass any scope associated with the token.
+*
+* Options:
+*
+*   - `realm`    authentication realm, defaults to "Users"
+*   - `scope`    list of scope values indicating the required scope of the
+*                access token for accessing the requested resource
+*   - `audience` if you want to check JWT audience (aud), provide a value here
+*   - `issuer`   if you want to check JWT issuer (iss), provide a value here
+*
+* Examples:
+*
+*     passport.use(new JwtBearerStrategy(
+*       secretOrPublicKey
+*       function(token, done) {
+*         User.findById(token.sub, function (err, user) {
+*           if (err) { return done(err); }
+*           if (!user) { return done(null, false); }
+*           return done(null, user, token);
+*         });
+*       }
+*     ));
+*
+* For further details on HTTP Bearer authentication, refer to [The OAuth 2.0 Authorization Protocol: Bearer Tokens](http://tools.ietf.org/html/draft-ietf-oauth-v2-bearer)
+* For further details on JSON Web Token, refert to [JSON Web Token](http://tools.ietf.org/html/draft-ietf-oauth-json-web-token)
+*
+* @param {object} options - The Options.
+* @param {Function} verify - The verify callback.
+* @constructor
+*/
 
-function Strategy(options, callback, verify) {
+function Strategy(options, verify) {
+
 
 // You can provide your own cert if you don't want to use Azure AD's certificate from our Identity servers (just in case you're using this for your own things!)
 
@@ -42,7 +89,7 @@ if(options.publicCert) {
 if(options.metadataurl) {
 
   log.info(options.metadataurl, 'metadata url provided to Strategy');
-  this.metadata = new Metadata(options.metadataurl, "odic");
+  this.metadata = new Metadata(options.metadataurl, "oidc");
 }
 
 if (!options.certificate && !options.metadataurl) {
@@ -51,77 +98,82 @@ if (!options.certificate && !options.metadataurl) {
  }
 
 
-if (typeof callback == 'function') {
-   verify = callback;
-//   callback = {};
- }
-
     // Passport requires a verify function
 
     if (!verify) {
       throw new TypeError('OIDCBearerStrategy requires a verify callback. Do not cheat!');
     }
 
-    this.metadata.fetch(callback);
-    log.info(this.metadata,'Metadata returned');
+    this.certs = [];
 
-function requestToUrl(callback) {
-
-  async.waterfall([
-    function(next){
-      if(!this.metadata.saml0) {
-        this.metadata.fetch(next);
-        } else {
-          next(null);
-        }
-        target = "";
-        console.log(this.metadata);
-        }
-      ], function (err, target) {
-        return callback(err, target);
-      });
-    }
+    // Token validation settings. Hopefully most of these will be pulled from the metadata and this is not needed
 
 
 
+// fetch metadata
+
+    if(this.metadata) {
+    this.metadata.fetch(function(err) {
+      if(err) {
+        log.warn('Error parsing metadata.', err);
+        return err;
+      } else {
+        log.info(this.metadata,'Metadata returned');
+        this.oidc = self.metadata.oidc;
+        this.keyURL = oidc.keyURL;
+        this.algothims = oidc.algorithm;
+      }
+    }); };
+
+  // fetch keys
 
 
 
+  var config = {
+ // The URL of the metadata document for your app. We will put the keys for token validation from the URL found in the jwks_uri tag of the in the metadata.
+algorithms: this.algorithms
 
-
+};
 
   function jwtVerify(req, token, done) {
   if (!options.passReqToCallback) {
     token = arguments[0];
     done = arguments[1];
     req = null;
+    log.info(token, 'was token going in to verification');
   }
 
-  requestToUrl(callback);
-  //  return pem.certToPEM(cert);
-  var PEMkey = "";
 
-  jwt.verify(token, PEMkey, options, function (err, token) {
-    if (err) {
-      if (err instanceof jwt.TokenExpiredError) {
-        log.warn('The access token provided to the server was expired');
-        done(null, false, 'The access token expired');
+
+  var PEMkey = pem.certToPEM(this._oidc.certs[0]);
+  log.info(PEMkey, 'was the PEM returned');
+
+  jwt.verify(token, PEMkey, config, function (err, token) {
+      if (err) {
+        if (err instanceof jwt.TokenExpiredError) {
+          log.warn("Access token expired");
+          done(null, false, 'The access token expired');
+       }
+        else if (err instanceof jwt.JsonWebTokenError) {
+          log.warn("An error was received validating the token", err.message);
+         done(null, false, util.format('Invalid token (%s)', err.message));
+        }
+        else {
+          done(err, false);
+        }
       }
-      else if (err instanceof jwt.JsonWebTokenError) {
-        log.warn('Invalid token was provided to server: ' + err.message);
-        done(null, false, util.format('Invalid token (%s)', err.message));
-      }
+
       else {
-        done(err, false);
-      }
-    } else {
+      log.info(token, 'was token going out of verification');
       if (options.passReqToCallback) {
+        log.info("We did pass Req back to Callback")
         verify(req, token, done);
       } else {
+        log.info("We did not pass Req back to Callback")
         verify(token, done);
       }
     }
-  });
+    });
 }
 
 

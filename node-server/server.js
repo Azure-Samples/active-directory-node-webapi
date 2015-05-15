@@ -31,11 +31,18 @@
     var getopt = require('posix-getopt');
     var config = require('./config');
 
+    var config = {
+   // The URL of the metadata document for your app. We will put the keys for token validation from the URL found in the jwks_uri tag of the in the metadata.
+  metadataurl: config.creds.openid_configuration
+
+};
+
     // array to hold logged in users
     var users = [];
 
     // Our logger
     var log = bunyan.createLogger({name: 'Windows Azure Active Directory Tutorial'});
+
 /**
 * Load Passport for OAuth2 flows
 */
@@ -166,7 +173,7 @@ function removeAll(req, res, next) {
  */
 function getTask(req, res, next) {
 
-
+  log.info('getTask was called');
         Task.find(req.params.owner, function (err, data) {
                 if (err) {
                         req.log.warn(err, 'get: unable to read %s', req.params.owner);
@@ -193,7 +200,7 @@ function listTasks(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
-  log.info("server getTasks");
+  log.info("listTasks was called");
 
   Task.find().limit(20).sort('date').exec(function (err,data) {
 
@@ -300,10 +307,43 @@ var server = restify.createServer({
         server.use(restify.bodyParser({ mapParams: true}));
         server.use(restify.authorizationParser());
 
+        // Let's start using Passport.js
+
+         server.use(passport.initialize());
+         server.use(passport.session());
+
+        // Passport stuff
+
+        var findById = function (id, fn) {
+          for (var i = 0, len = users.length; i < len; i++) {
+            var user = users[i];
+            if (user.id === id) {
+              return fn(null, user);
+            }
+          }
+          return fn(null, null);
+        };
+
+
+        var oidcStrategy = new OIDCBearerStrategy(config,
+                     function(token, done) {
+                      log.info('verifying the user');
+                       log.info(token, 'was the token retreived');
+             findById(token.sub, function (err, user) {
+               if (err) { return done(err); }
+               if (!user) { return done(null, false);
+                 log.info('user not found'); }
+               return done(null, user, token);
+             });
+          }
+                 );
+
+        passport.use(oidcStrategy);
+
         /// Now the real handlers. Here we just CRUD
 
-        server.get('/tasks', listTasks);
-        server.head('/tasks', listTasks);
+        server.get('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
+        server.get('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
         server.get('/tasks/:owner', getTask);
         server.head('/tasks/:owner', getTask);
         server.post('/tasks/:owner/:task', createTask);
@@ -330,26 +370,6 @@ var server = restify.createServer({
                 next();
         });
 
-         module.exports.policies = {
-           // Default policy for all controllers and actions
-           '*': 'authenticated'
-         };
-
-         module.exports = function (req, res, done) {
-   passport.authenticate('bearer', {session: false}, function(err, user, info) {
-     if (err) return done(err);
-     if (user) return done();
-
-     return res.send(403, {message: "You are not permitted to perform this action."});
-   })(req, res);
- };
-
-
-// Let's start using Passport.js
-
- server.use(passport.initialize());
-
-
 
   server.listen(serverPort, function() {
 
@@ -361,6 +381,6 @@ var server = restify.createServer({
   consoleMessage += '\n !!! why not try a $curl -isS %s | json to get some ideas? \n'
   consoleMessage += '+++++++++++++++++++++++++++++++++++++++++++++++++++++ \n\n'
 
-  console.log(consoleMessage, server.name, server.url, server.url, server.url);
+  //log.info(consoleMessage, server.name, server.url, server.url, server.url);
 
 });
