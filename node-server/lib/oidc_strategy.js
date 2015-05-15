@@ -28,6 +28,8 @@ var async = require('async');
 var jwt = require('jsonwebtoken');
 var request = require('request');
 var Metadata = require('./metadata').Metadata;
+var ursa = require('ursa');
+var jws = require('jws');
 
 var log = bunyan.createLogger({name: 'Microsoft OpenID Connect: Passport Strategy'});
 /**
@@ -88,7 +90,7 @@ if(options.publicCert) {
 
 if(options.metadataurl) {
 
-  log.info(options.metadataurl, 'metadata url provided to Strategy');
+  log.info('Metadata url provided to Strategy was: ', options.metadataurl);
   this.metadata = new Metadata(options.metadataurl, "oidc");
 }
 
@@ -97,6 +99,10 @@ if (!options.certificate && !options.metadataurl) {
    throw new TypeError('OIDCBearerStrategy requires either a PEM encoded public key or a metadata location that contains cert data for RSA and ECDSA callback.');
  }
 
+ if (typeof options == 'function') {
+    verify = options;
+    options = {};
+  }
 
     // Passport requires a verify function
 
@@ -104,38 +110,19 @@ if (!options.certificate && !options.metadataurl) {
       throw new TypeError('OIDCBearerStrategy requires a verify callback. Do not cheat!');
     }
 
-    this.certs = [];
-
     // Token validation settings. Hopefully most of these will be pulled from the metadata and this is not needed
 
 
-
-// fetch metadata
-
-    if(this.metadata) {
     this.metadata.fetch(function(err) {
-      if(err) {
-        log.warn('Error parsing metadata.', err);
-        return err;
-      } else {
-        log.info(this.metadata,'Metadata returned');
-        this.oidc = self.metadata.oidc;
-        this.keyURL = oidc.keyURL;
-        this.algothims = oidc.algorithm;
-      }
-    }); };
+        if (err) {
+          throw new Error("Unable to fetch metadata: " + err);
+        }
 
-  // fetch keys
+      });
 
-
-
-  var config = {
- // The URL of the metadata document for your app. We will put the keys for token validation from the URL found in the jwks_uri tag of the in the metadata.
-algorithms: this.algorithms
-
-};
 
   function jwtVerify(req, token, done) {
+
   if (!options.passReqToCallback) {
     token = arguments[0];
     done = arguments[1];
@@ -144,11 +131,30 @@ algorithms: this.algorithms
   }
 
 
+var decoded = jws.decode(token);
+    if (decoded == null) {
+      done(null, false, "Invalid JWT token.");
+    }
 
-  var PEMkey = pem.certToPEM(this._oidc.certs[0]);
-  log.info(PEMkey, 'was the PEM returned');
+ log.info(decoded, 'was token decrypted. But is it valid?');
 
-  jwt.verify(token, PEMkey, config, function (err, token) {
+
+// We have two different types of token signatures we have to validate here. One provides x5t and the other a kid. We need to call the right one.
+       if (decoded.header.x5t) {
+         var PEMkey = this.metadata.generateOidcPEM(decoded.header.x5t);
+         }
+       else if (decoded.header.kid) {
+         var PEMkey = this.metadata.generateOidcPEM(decoded.header.x5t);
+         }
+       else { throw new TypeError('We did not reveive a token we know how to validate');
+     }
+
+
+
+       options.issuer = this.metadata.oidc.issuer;
+       options.algorithms = ['RS256'];
+
+  jwt.verify(token, PEMkey, options, function (err, token) {
       if (err) {
         if (err instanceof jwt.TokenExpiredError) {
           log.warn("Access token expired");
@@ -176,6 +182,10 @@ algorithms: this.algorithms
     });
 }
 
+var opts = {};
+  opts.passReqToCallback = true;
+
+  console.log('Req: ' + options.passReqToCallback);
 
     BearerStrategy.call(this, options, jwtVerify);
 

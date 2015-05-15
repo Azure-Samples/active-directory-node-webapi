@@ -21,6 +21,7 @@ var xml2js = require('xml2js');
 var request = require('request');
 var aadutils = require('./aadutils');
 var async = require('async');
+var ursa = require('ursa');
 
 // Logging
 
@@ -102,20 +103,56 @@ Metadata.prototype.updateSamlMetadata = function(doc, next) {
 Metadata.prototype.updateOidcMetadata = function(doc, next) {
   log.info('Request to update the Open ID Connect Metadata');
   try {
-    this.oidc = {};
+      this.oidc = {};
+      this.oidc.issuer = doc['issuer'];
+      this.oidc.algorithms = doc['id_token_signing_alg_values_supported'];
+      var jwksUri = doc.jwks_uri;
 
-    this.oidc.issuer = doc['issuer'];
-    this.oidc.keyURL = doc['jwks_uri'];
-    this.oidc.algorithm = doc['id_token_signing_alg_values_supported'];
+      log.info('Algorithm retreived was: ', this.oidc.algorithms);
+      log.info('Issuer we are using is: ', this.oidc.issuer);
+      log.info('Key Endpoint will we use is: ', jwksUri);
 
-    log.info("algorithm we will use is: ", this.oidc.algorithm);
-    log.info("the Keys are located at: ", this.oidc.keyURL);
+      var self = this;
+      var callback = next;
 
-    next(null);
-  } catch (e) {
-    next(new Error('Invalid Open ID Connect Federation Metadata ' + e.message));
-  }
-};
+      async.waterfall([
+        // fetch the signing keys
+        function(next){
+          request(jwksUri, function (err, response, body) {
+            if(err) {
+              next(err);
+            } else if(response.statusCode !== 200) {
+              next(new Error("Error:" + response.statusCode +  " Cannot get AAD Signing Keys"));
+            } else {
+              next(null, body);
+            }
+          });
+        },
+
+        function(body, next){
+          // parse the AAD Federation metadata xml
+          log.info("Parsing JSON retreived from the signing keys endpoint.");
+          try {
+            self.oidc.keys = JSON.parse(body).keys;
+            log.info("***** KEYS  ******");
+            log.info("");
+            log.info(self.oidc.keys);
+            log.info("");
+            log.info("***********");
+            next(null);
+          } catch (e) {
+            next(new Error(e));
+          }
+        },
+
+      ], function (err) {
+        callback(err);
+      });
+
+    } catch (e) {
+      next(new Error('Invalid Open ID Connect Federation Metadata ' + e.message));
+    }
+  };
 
 
 Metadata.prototype.updateWsfedMetadata = function(doc, next) {
@@ -147,6 +184,24 @@ Metadata.prototype.updateWsfedMetadata = function(doc, next) {
   }
 };
 
+Metadata.prototype.generateOidcPEM = function(kid) {
+  if (!this.oidc.keys) {
+    return null;
+  }
+  for (var i=0; i < this.oidc.keys.length; i++) {
+    if (this.oidc.keys[i].kid == kid) {
+      log.info('Working on key: ', this.oidc.keys[i])
+      var modulus = new Buffer(this.oidc.keys[i].n, 'base64');
+      var exponent = new Buffer(this.oidc.keys[i].e, 'base64');
+
+      var pubKey = ursa.createPublicKeyFromComponents(modulus, exponent);
+      return pubKey.toPublicPem('utf8');
+    }
+  }
+  return null;
+};
+
+
 Metadata.prototype.fetch = function(callback) {
   var self = this;
   log.info("Fetching metadata from the provided metadata URL: " + self.url);
@@ -159,7 +214,7 @@ Metadata.prototype.fetch = function(callback) {
         } else if(response.statusCode !== 200) {
           next(new Error("Error:" + response.statusCode +  " Cannot get AAD Federation metadata from " + self.url));
         } else {
-          log.info("***********");
+          log.info("***** METADATA ******");
           log.info("");
           log.info(body);
           log.info("");
@@ -185,29 +240,30 @@ Metadata.prototype.fetch = function(callback) {
 
     } else if(self.authtype == "oidc") {
       log.info("Parsing JSON retreived from the endpoint");
-      self.metadata =  JSON.parse(body);
+      self.metadata = JSON.parse(body);
+      next(null);
 
     } else { next(new Error("No Authentication type specified to metadata parser. Valid types are saml, wsfed, or odic")); }
 
   },
-    function(next){
-      if(self.authtype == "saml") {
-      // update the SAML SSO endpoints and certs from the metadata
-      self.updateSamlMetadata(self.metatdata, next);
-    }},
-    function(next){
-      if(self.authtype == "wsfed") {
-      // update the SAML SSO endpoints and certs from the metadata
-      self.updateWsfedMetadata(self.metatdata, next);
-    }},
-    function(next){
-      if(self.authtype == "oidc") {
-      self.updateOidcMetadata(self.metadata, next);
-    }}
-  ], function (err) {
-    // return err or success (err === null) to callback
-    callback(err);
-  });
-};
+  function(next){
+
+        console.log('updating metadata...');
+
+        if(self.authtype == "saml") {
+          self.updateSamlMetadata(self.metatdata, next);
+        }
+        else if(self.authtype == "wsfed") {
+          self.updateWsfedMetadata(self.metatdata, next);
+      }
+        else if(self.authtype == "oidc") {
+          self.updateOidcMetadata(self.metadata, next);
+        }
+      },
+    ], function (err) {
+      callback(err);
+      log.info('Goodbye from Metadata');
+    });
+  };
 
 exports.Metadata = Metadata;
