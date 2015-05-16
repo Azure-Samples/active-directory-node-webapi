@@ -144,7 +144,7 @@ var decoded = jws.decode(token);
          var PEMkey = this.metadata.generateOidcPEM(decoded.header.x5t);
          }
        else if (decoded.header.kid) {
-         var PEMkey = this.metadata.generateOidcPEM(decoded.header.x5t);
+         var PEMkey = this.metadata.generateOidcPEM(decoded.header.kid);
          }
        else { throw new TypeError('We did not reveive a token we know how to validate');
      }

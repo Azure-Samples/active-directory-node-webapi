@@ -25,13 +25,14 @@
     var path = require('path');
     var util = require('util');
     var assert = require('assert-plus');
+    var mongoose = require('mongoose/');
     var bunyan = require('bunyan');
     var getopt = require('posix-getopt');
     var restify = require('restify');
     var getopt = require('posix-getopt');
     var config = require('./config');
 
-    var config = {
+    var options = {
    // The URL of the metadata document for your app. We will put the keys for token validation from the URL found in the jwks_uri tag of the in the metadata.
   metadataurl: config.creds.openid_configuration
 
@@ -52,14 +53,14 @@
 
 
 
-try { // MongoDB setup
+// MongoDB setup
 
 /**
 * Setup some configuration
 */
-var mongoose = require('mongoose/');
+
 var serverPort = process.env.PORT || 8888;
-var serverURI = ( process.env.PORT ) ? config.creds.mongoose_auth_mongohq : config.creds.mongoose_auth_local;
+var serverURI = (process.env.PORT) ? config.creds.mongoose_auth_mongohq : config.creds.mongoose_auth_local;
 
 
 /**
@@ -89,13 +90,7 @@ var TaskSchema = new Schema({
 mongoose.model('Task', TaskSchema);
 var Task = mongoose.model('Task');
 
-}
 
-catch(err) {
-
-log.warn("MongoDB error. Did you intall MongoDB?" + err);
-
-}
 
 /**
  *
@@ -325,14 +320,19 @@ var server = restify.createServer({
         };
 
 
-        var oidcStrategy = new OIDCBearerStrategy(config,
+        var oidcStrategy = new OIDCBearerStrategy(options,
                      function(token, done) {
                       log.info('verifying the user');
                        log.info(token, 'was the token retreived');
              findById(token.sub, function (err, user) {
                if (err) { return done(err); }
-               if (!user) { return done(null, false);
-                 log.info('user not found'); }
+
+                 if (!user) {
+          // "Auto-registration"
+          log.info('User was added automatically as they were new. Their sub is: ', token.sub)
+          users.push(token);
+          return done(null, token);
+        }
                return done(null, user, token);
              });
           }
@@ -344,14 +344,14 @@ var server = restify.createServer({
 
         server.get('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
         server.get('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
-        server.get('/tasks/:owner', getTask);
-        server.head('/tasks/:owner', getTask);
-        server.post('/tasks/:owner/:task', createTask);
-        server.post('/tasks', createTask);
-        server.del('/tasks/:owner/:task', removeTask);
-        server.del('/tasks/:owner', removeTask);
-        server.del('/tasks', removeTask);
-        server.del('/tasks', removeAll, function respond(req, res, next) { res.send(204); next(); });
+        server.get('/tasks/:owner', passport.authenticate('oidc-bearer', { session: false }), getTask);
+        server.head('/tasks/:owner', passport.authenticate('oidc-bearer', { session: false }), getTask);
+        server.post('/tasks/:owner/:task', passport.authenticate('oidc-bearer', { session: false }), createTask);
+        server.post('/tasks', passport.authenticate('oidc-bearer', { session: false }), createTask);
+        server.del('/tasks/:owner/:task', passport.authenticate('oidc-bearer', { session: false }), removeTask);
+        server.del('/tasks/:owner', passport.authenticate('oidc-bearer', { session: false }), removeTask);
+        server.del('/tasks', passport.authenticate('oidc-bearer', { session: false }), removeTask);
+        server.del('/tasks', passport.authenticate('oidc-bearer', { session: false }), removeAll, function respond(req, res, next) { res.send(204); next(); });
 
 
         // Register a default '/' handler
