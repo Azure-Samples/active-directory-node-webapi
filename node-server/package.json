@@ -46,7 +46,9 @@
     "request": "~2.16.6",
     "underscore": "~1.4.4",
     "xtend": "~2.0.3",
-    "bunyan": "*"
+    "bunyan": "*",
+    "jws": "*",
+    "ursa": "*"
 
   },
   "devDependencies": {
