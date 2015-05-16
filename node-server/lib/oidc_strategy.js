@@ -1,5 +1,5 @@
 /*
- Copyright (c) Microsoft Open Technologies, Inc.
+ Copyright (c) Microsoft Corporation
  All Rights Reserved
  Apache License 2.0
 
@@ -59,7 +59,7 @@ var log = bunyan.createLogger({name: 'Microsoft OpenID Connect: Passport Strateg
 *
 * Examples:
 *
-*     passport.use(new JwtBearerStrategy(
+*     passport.use(new OIDCBearerStrategy(
 *       secretOrPublicKey
 *       function(token, done) {
 *         User.findById(token.sub, function (err, user) {
@@ -135,10 +135,12 @@ var decoded = jws.decode(token);
       done(null, false, "Invalid JWT token.");
     }
 
- log.info(decoded, 'was token decrypted. But is it valid?');
+ log.info('token decoded. But is it valid?: ', decoded);
 
 
-// We have two different types of token signatures we have to validate here. One provides x5t and the other a kid. We need to call the right one.
+// We have two different types of token signatures we have to validate here. One provides x5t and the other a kid. 
+// We need to call the right one.
+
        if (decoded.header.x5t) {
          var PEMkey = this.metadata.generateOidcPEM(decoded.header.x5t);
          }

@@ -1,5 +1,5 @@
 /*
- Copyright (c) Microsoft Open Technologies, Inc.
+ Copyright (c) Microsoft Corporation
  All Rights Reserved
  Apache License 2.0
 
@@ -32,6 +32,9 @@
     var getopt = require('posix-getopt');
     var config = require('./config');
 
+
+    // We pass these options in to the ODICBearerStrategy.
+
     var options = {
    // The URL of the metadata document for your app. We will put the keys for token validation from the URL found in the jwks_uri tag of the in the metadata.
   metadataurl: config.creds.openid_configuration
@@ -54,29 +57,16 @@
 
 
 // MongoDB setup
-
-/**
-* Setup some configuration
-*/
-
+// Setup some configuration
 var serverPort = process.env.PORT || 8888;
 var serverURI = (process.env.PORT) ? config.creds.mongoose_auth_mongohq : config.creds.mongoose_auth_local;
 
-
-/**
-*
-* Connect to MongoDB
-*/
-
+// Connect to MongoDB
 global.db = mongoose.connect(serverURI);
 var Schema = mongoose.Schema;
 log.info('MongoDB Schema loaded');
 
-
-/**
-/ Here we create a schema to store our tasks and users. Pretty simple schema for now.
-*/
-
+// Here we create a schema to store our tasks and users. Pretty simple schema for now.
 var TaskSchema = new Schema({
   owner: String,
   task: String,
@@ -84,9 +74,7 @@ var TaskSchema = new Schema({
   date: Date
 });
 
-
 // Use the schema to register a model
-
 mongoose.model('Task', TaskSchema);
 var Task = mongoose.model('Task');
 
@@ -94,8 +82,10 @@ var Task = mongoose.model('Task');
 
 /**
  *
- * APIs
+ * APIs for our REST Task server
  */
+
+ // Create a task
 
 function createTask(req, res, next) {
 
@@ -133,9 +123,8 @@ function createTask(req, res, next) {
 }
 
 
-/**
- * Deletes a Task by name
- */
+ // Delete a task by name
+
 function removeTask(req, res, next) {
 
         Task.remove( { task:req.params.task }, function (err) {
@@ -151,9 +140,8 @@ function removeTask(req, res, next) {
         });
 }
 
-/**
- * Deletes all Tasks. A wipe
- */
+ // Delete all tasks
+
 function removeAll(req, res, next) {
         Task.remove();
         res.send(204);
@@ -161,11 +149,8 @@ function removeAll(req, res, next) {
 }
 
 
-/**
- *
- *
- *
- */
+// Get a specific task based on name
+
 function getTask(req, res, next) {
 
   log.info('getTask was called');
@@ -182,12 +167,8 @@ function getTask(req, res, next) {
         return next();
 }
 
-
-/**
- * Simple returns the list of TODOs that were loaded.
- *
- */
-
+ /// Simple returns the list of TODOs that were loaded.
+ 
 function listTasks(req, res, next) {
   // Resitify currently has a bug which doesn't allow you to set default headers
   // This headers comply with CORS and allow us to mongodbServer our response to any origin
@@ -272,7 +253,7 @@ util.inherits(TaskNotFoundError, restify.RestError);
 
 var server = restify.createServer({
         name: "Windows Azure Active Directroy TODO Server",
-    version: "1.0.0"
+    version: "2.0.1"
 });
 
         // Ensure we don't drop data on uploads
@@ -299,15 +280,23 @@ var server = restify.createServer({
         server.use(restify.dateParser());
         server.use(restify.queryParser());
         server.use(restify.gzipResponse());
-        server.use(restify.bodyParser({ mapParams: true}));
-        server.use(restify.authorizationParser());
+        server.use(restify.bodyParser({ mapParams: true})); // Allows for JSON mapping to REST
+        server.use(restify.authorizationParser()); // Looks for authorization headers
 
         // Let's start using Passport.js
 
-         server.use(passport.initialize());
-         server.use(passport.session());
+         server.use(passport.initialize()); // Starts passport
+         server.use(passport.session()); // Provides session support
 
-        // Passport stuff
+        /**
+        /*
+        /* Calling the OIDCBearerStrategy and managing users
+        /* 
+        /* Passport pattern provides the need to manage users and info tokens
+        /* with a FindorCreate() method that must be provided by the implementor.
+        /* Here we just autoregister any user and implement a FindById().
+        /* You'll want to do something smarter.
+        **/
 
         var findById = function (id, fn) {
           for (var i = 0, len = users.length; i < len; i++) {
@@ -341,6 +330,17 @@ var server = restify.createServer({
         passport.use(oidcStrategy);
 
         /// Now the real handlers. Here we just CRUD
+
+        /**
+        /*
+        /* Each of these handlers are protected by our OIDCBearerStrategy by invoking 'oidc-bearer'
+        /* in the pasport.authenticate() method. We set 'session: false' as REST is stateless and 
+        /* we don't need to maintain session state. You can experiement removing API protection
+        /* by removing the passport.authenticate() method like so:
+        /*
+        /* server.get('/tasks', listTasks);
+        /*
+        **/
 
         server.get('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
         server.get('/tasks', passport.authenticate('oidc-bearer', { session: false }), listTasks);
