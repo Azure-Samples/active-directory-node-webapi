@@ -119,8 +119,8 @@ exports['metadata'] = {
         var m = new Metadata(oidc_metadataUrl, "oidc"); // this indicates to parse JSON vs. XML
         m.fetch(function(err) {
           test.ifError(err, 'method had error before testing properties');
-          test.ok(m.oidc.algorithm, 'fetch should obtain odic algorithm');
-          test.ok(m.oidc.keyURL, 'fetch should obtain odic Key URL');
+          test.ok(m.oidc.issuer, 'fetch should obtain saml login endpoint');
+          test.ok(m.oidc.algorithms, 'fetch should obtain saml logout endpoint');
         });
       },
       Error,

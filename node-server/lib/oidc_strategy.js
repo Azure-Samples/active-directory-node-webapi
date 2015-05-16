@@ -21,7 +21,6 @@ var bunyan = require('bunyan');
 var passport = require('passport');
 var BearerStrategy = require('passport-http-bearer').Strategy
 var util = require('util');
-var pem = require('./pem');
 var crypto = require('crypto');
 var querystring = require('querystring');
 var async = require('async');
@@ -152,7 +151,7 @@ var decoded = jws.decode(token);
 
 
        options.issuer = this.metadata.oidc.issuer;
-       options.algorithms = ['RS256'];
+       options.algorithms = this.metadata.oidc.algorithms;
 
   jwt.verify(token, PEMkey, options, function (err, token) {
       if (err) {

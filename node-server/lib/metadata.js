@@ -19,7 +19,6 @@
 
 var xml2js = require('xml2js');
 var request = require('request');
-var aadutils = require('./aadutils');
 var async = require('async');
 var ursa = require('ursa');
 
