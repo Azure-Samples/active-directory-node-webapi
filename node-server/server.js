@@ -43,6 +43,7 @@
 
     // array to hold logged in users
     var users = [];
+    var owner = null;
 
     // Our logger
     var log = bunyan.createLogger({name: 'Windows Azure Active Directory Tutorial'});
@@ -104,7 +105,7 @@ function createTask(req, res, next) {
           return;
       }
 
-  _task.owner = req.params.owner;
+  _task.owner = owner;
    _task.task = req.params.task;
    _task.date = new Date();
 
@@ -127,13 +128,14 @@ function createTask(req, res, next) {
 
 function removeTask(req, res, next) {
 
-        Task.remove( { task:req.params.task }, function (err) {
+        Task.remove( { task:req.params.task, owner:owner }, function (err) {
                 if (err) {
                         req.log.warn(err,
                                      'removeTask: unable to delete %s',
                                      req.params.task);
                         next(err);
                 } else {
+                        log.info('Deleted task:', req.params.task);
                         res.send(204);
                         next();
                 }
@@ -153,10 +155,10 @@ function removeAll(req, res, next) {
 
 function getTask(req, res, next) {
 
-  log.info('getTask was called');
-        Task.find(req.params.owner, function (err, data) {
+  log.info('getTask was called for: ', owner);
+        Task.find(owner, function (err, data) {
                 if (err) {
-                        req.log.warn(err, 'get: unable to read %s', req.params.owner);
+                        req.log.warn(err, 'get: unable to read %s', owner);
                         next(err);
                         return;
                 }
@@ -168,7 +170,7 @@ function getTask(req, res, next) {
 }
 
  /// Simple returns the list of TODOs that were loaded.
- 
+
 function listTasks(req, res, next) {
   // Resitify currently has a bug which doesn't allow you to set default headers
   // This headers comply with CORS and allow us to mongodbServer our response to any origin
@@ -176,9 +178,9 @@ function listTasks(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "X-Requested-With");
 
-  log.info("listTasks was called");
+  log.info("listTasks was called for: ", owner);
 
-  Task.find().limit(20).sort('date').exec(function (err,data) {
+  Task.find(owner).limit(20).sort('date').exec(function (err,data) {
 
     if (err)
       return next(err);
@@ -291,7 +293,7 @@ var server = restify.createServer({
         /**
         /*
         /* Calling the OIDCBearerStrategy and managing users
-        /* 
+        /*
         /* Passport pattern provides the need to manage users and info tokens
         /* with a FindorCreate() method that must be provided by the implementor.
         /* Here we just autoregister any user and implement a FindById().
@@ -301,7 +303,8 @@ var server = restify.createServer({
         var findById = function (id, fn) {
           for (var i = 0, len = users.length; i < len; i++) {
             var user = users[i];
-            if (user.id === id) {
+            log.info('Got user: ',user);
+            if (user.sub === id) {
               return fn(null, user);
             }
           }
@@ -315,13 +318,15 @@ var server = restify.createServer({
                        log.info(token, 'was the token retreived');
              findById(token.sub, function (err, user) {
                if (err) { return done(err); }
-
                  if (!user) {
           // "Auto-registration"
           log.info('User was added automatically as they were new. Their sub is: ', token.sub)
           users.push(token);
+          log.info(users);
+          owner = token.sub;
           return done(null, token);
         }
+               owner = token.sub;
                return done(null, user, token);
              });
           }
@@ -334,7 +339,7 @@ var server = restify.createServer({
         /**
         /*
         /* Each of these handlers are protected by our OIDCBearerStrategy by invoking 'oidc-bearer'
-        /* in the pasport.authenticate() method. We set 'session: false' as REST is stateless and 
+        /* in the pasport.authenticate() method. We set 'session: false' as REST is stateless and
         /* we don't need to maintain session state. You can experiement removing API protection
         /* by removing the passport.authenticate() method like so:
         /*
