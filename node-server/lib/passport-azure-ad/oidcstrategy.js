@@ -87,13 +87,25 @@ if(options.publicCert) {
   options.certificate = pem.getCertificate(options.publicCert);
 }
 
-if(options.metadataurl) {
+// if you want to check JWT issuer that is not in the token (not recommended), provide a value here
 
-  log.info('Metadata url provided to Strategy was: ', options.metadataurl);
-  this.metadata = new Metadata(options.metadataurl, "oidc");
+if(options.issuer) {
+  log.info('Issuer provided to Strategy was: ', options.issuer);
 }
 
-if (!options.certificate && !options.metadataurl) {
+// if you want to check JWT audience (aud), provide a value here
+
+if(options.audience) {
+  log.info('Audience provided to Strategy was: ', options.audience);
+}
+
+if(options.identityMetadata) {
+
+  log.info('Metadata url provided to Strategy was: ', options.identityMetadata);
+  this.metadata = new Metadata(options.identityMetadata, "oidc");
+}
+
+if (!options.certificate && !options.identityMetadata) {
   log.warn("No options was presented to Strategy as required.")
    throw new TypeError('OIDCBearerStrategy requires either a PEM encoded public key or a metadata location that contains cert data for RSA and ECDSA callback.');
  }
@@ -138,7 +150,7 @@ var decoded = jws.decode(token);
  log.info('token decoded. But is it valid?: ', decoded);
 
 
-// We have two different types of token signatures we have to validate here. One provides x5t and the other a kid. 
+// We have two different types of token signatures we have to validate here. One provides x5t and the other a kid.
 // We need to call the right one.
 
        if (decoded.header.x5t) {
@@ -152,7 +164,7 @@ var decoded = jws.decode(token);
 
 
 
-       options.issuer = this.metadata.oidc.issuer;
+       if (!options.issuer) { options.issuer = this.metadata.oidc.issuer; }
        options.algorithms = this.metadata.oidc.algorithms;
 
   jwt.verify(token, PEMkey, options, function (err, token) {

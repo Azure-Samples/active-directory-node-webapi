@@ -27,35 +27,28 @@
     var assert = require('assert-plus');
     var mongoose = require('mongoose/');
     var bunyan = require('bunyan');
-    var getopt = require('posix-getopt');
     var restify = require('restify');
-    var getopt = require('posix-getopt');
     var config = require('./config');
+    var passport = require('passport');
+    var OIDCBearerStrategy = require('./lib/passport-azure-ad/index').OIDCStrategy;
 
 
     // We pass these options in to the ODICBearerStrategy.
 
     var options = {
    // The URL of the metadata document for your app. We will put the keys for token validation from the URL found in the jwks_uri tag of the in the metadata.
-  metadataurl: config.creds.openid_configuration
+  identityMetadata: config.creds.identityMetadata,
+  // issuer: config.creds.issuer, 
+  audience: config.creds.audience
 
 };
 
-    // array to hold logged in users
+    // array to hold logged in users and the current logged in user (owner)
     var users = [];
     var owner = null;
 
     // Our logger
-    var log = bunyan.createLogger({name: 'Windows Azure Active Directory Tutorial'});
-
-/**
-* Load Passport for OAuth2 flows
-*/
-
- var passport = require('passport')
-  , OIDCBearerStrategy = require('./lib/oidc_strategy');
-
-
+    var log = bunyan.createLogger({name: 'Windows Azure Active Directory Sample'});
 
 // MongoDB setup
 // Setup some configuration
@@ -156,7 +149,7 @@ function removeAll(req, res, next) {
 function getTask(req, res, next) {
 
   log.info('getTask was called for: ', owner);
-        Task.find(owner, function (err, data) {
+        Task.find({ owner: owner }, function (err, data) {
                 if (err) {
                         req.log.warn(err, 'get: unable to read %s', owner);
                         next(err);
@@ -180,7 +173,7 @@ function listTasks(req, res, next) {
 
   log.info("listTasks was called for: ", owner);
 
-  Task.find(owner).limit(20).sort('date').exec(function (err,data) {
+  Task.find({ owner: owner }).limit(20).sort('date').exec(function (err,data) {
 
     if (err)
       return next(err);
@@ -192,6 +185,10 @@ function listTasks(req, res, next) {
     if (!data.length) {
             log.warn(err, "There is no tasks in the database. Did you initalize the database as stated in the README?");
         }
+
+        if (!owner) {
+                log.warn(err, "You did not pass an owner when listing tasks.");
+            }
 
     else {
 
@@ -290,47 +287,46 @@ var server = restify.createServer({
          server.use(passport.initialize()); // Starts passport
          server.use(passport.session()); // Provides session support
 
-        /**
-        /*
-        /* Calling the OIDCBearerStrategy and managing users
-        /*
-        /* Passport pattern provides the need to manage users and info tokens
-        /* with a FindorCreate() method that must be provided by the implementor.
-        /* Here we just autoregister any user and implement a FindById().
-        /* You'll want to do something smarter.
-        **/
+         /**
+         /*
+         /* Calling the OIDCBearerStrategy and managing users
+         /*
+         /* Passport pattern provides the need to manage users and info tokens
+         /* with a FindorCreate() method that must be provided by the implementor.
+         /* Here we just autoregister any user and implement a FindById().
+         /* You'll want to do something smarter.
+         **/
 
-        var findById = function (id, fn) {
-          for (var i = 0, len = users.length; i < len; i++) {
-            var user = users[i];
-            log.info('Got user: ',user);
-            if (user.sub === id) {
-              return fn(null, user);
-            }
-          }
-          return fn(null, null);
-        };
+         var findById = function (id, fn) {
+           for (var i = 0, len = users.length; i < len; i++) {
+             var user = users[i];
+             if (user.sub === id) {
+               log.info('Found user: ',user);
+               return fn(null, user);
+             }
+           }
+           return fn(null, null);
+         };
 
 
-        var oidcStrategy = new OIDCBearerStrategy(options,
-                     function(token, done) {
-                      log.info('verifying the user');
-                       log.info(token, 'was the token retreived');
-             findById(token.sub, function (err, user) {
-               if (err) { return done(err); }
-                 if (!user) {
-          // "Auto-registration"
-          log.info('User was added automatically as they were new. Their sub is: ', token.sub)
-          users.push(token);
-          log.info(users);
-          owner = token.sub;
-          return done(null, token);
-        }
-               owner = token.sub;
-               return done(null, user, token);
-             });
-          }
-                 );
+         var oidcStrategy = new OIDCBearerStrategy(options,
+                      function(token, done) {
+                       log.info('verifying the user');
+                        log.info(token, 'was the token retreived');
+              findById(token.sub, function (err, user) {
+                if (err) { return done(err); }
+                  if (!user) {
+           // "Auto-registration"
+           log.info('User was added automatically as they were new. Their sub is: ', token.sub)
+           users.push(token);
+           owner = token.sub;
+           return done(null, token);
+         }
+                owner = token.sub;
+                return done(null, user, token);
+              });
+           }
+                  );
 
         passport.use(oidcStrategy);
 

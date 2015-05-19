@@ -19,6 +19,7 @@
 
 var xml2js = require('xml2js');
 var request = require('request');
+var aadutils = require('./aadutils');
 var async = require('async');
 var ursa = require('ursa');
 
@@ -28,19 +29,15 @@ var bunyan = require('bunyan');
 var log = bunyan.createLogger({name: 'Microsoft OpenID Connect: Passport Strategy: Metadata Parser'});
 
 var Metadata = function (url, authtype) {
-
-
   if(!url) {
     throw new Error("Metadata: url is a required argument");
   }
   if(!authtype) {
     throw new Error('OIDCBearerStrategy requires an authentication type specified to metadata parser. Valid types are saml, wsfed, or odic"');
   }
-
   this.url = url;
   this.metadata = null;
   this.authtype = authtype;
-  log.info('Metadata requested for authentication type', authtype);
 };
 
 Object.defineProperty(Metadata, 'url', {
@@ -67,7 +64,6 @@ Object.defineProperty(Metadata, 'oidc', {
   }
 });
 
-
 Object.defineProperty(Metadata, 'metadata', {
   get: function () {
     return this.metadata;
@@ -75,9 +71,7 @@ Object.defineProperty(Metadata, 'metadata', {
 });
 
 Metadata.prototype.updateSamlMetadata = function(doc, next) {
-  log.info('Request to update the SAML Metadata');
   try {
-
     this.saml = {};
 
     var entity = aadutils.getElement(doc, 'EntityDescriptor');
@@ -90,12 +84,36 @@ Metadata.prototype.updateSamlMetadata = function(doc, next) {
 
     // copy the x509 certs from the metadata
     this.saml.certs = [];
-    for (var j=0;j<keyDescriptor.length;j++) {
-      this.saml.certs.push(keyDescriptor[j].KeyInfo[0].X509Data[0].X509Certificate[0]);
-    }
+    this.saml.certs.push(keyDescriptor[0].KeyInfo[0].X509Data[0].X509Certificate[0]);
     next(null);
   } catch (e) {
     next(new Error('Invalid SAMLP Federation Metadata ' + e.message));
+  }
+};
+
+Metadata.prototype.updateWsfedMetadata = function(doc, next) {
+  try {
+    this.wsfed = {};
+    var entity = aadutils.getElement(doc, 'EntityDescriptor');
+    var roles = aadutils.getElement(entity, 'RoleDescriptor');
+    for(var i = 0; i < roles.length; i++) {
+      var role = roles[i];
+      if(role['fed:SecurityTokenServiceEndpoint']) {
+        var endpoint = role['fed:SecurityTokenServiceEndpoint'];
+        var endPointReference = aadutils.getFirstElement(endpoint[0],'EndpointReference');
+        this.wsfed.loginEndpoint = aadutils.getFirstElement(endPointReference,'Address');
+
+        var keyDescriptor = aadutils.getElement(role, 'KeyDescriptor');
+        // copy the x509 certs from the metadata
+        this.wsfed.certs = [];
+        this.wsfed.certs.push(keyDescriptor[0].KeyInfo[0].X509Data[0].X509Certificate[0]);
+        break;
+      }
+    }
+
+    return next(null);
+  } catch (e) {
+    next(new Error('Invalid WSFED Federation Metadata ' + e.message));
   }
 };
 
@@ -153,37 +171,7 @@ Metadata.prototype.updateOidcMetadata = function(doc, next) {
     }
   };
 
-
-Metadata.prototype.updateWsfedMetadata = function(doc, next) {
-  log.info('Request to update the WS Federation Metadata');
-  try {
-    this.wsfed = {};
-    var entity = aadutils.getElement(doc, 'EntityDescriptor');
-    var roles = aadutils.getElement(entity, 'RoleDescriptor');
-    for(var i = 0; i < roles.length; i++) {
-      var role = roles[i];
-      if(role['fed:SecurityTokenServiceEndpoint']) {
-        var endpoint = role['fed:SecurityTokenServiceEndpoint'];
-        var endPointReference = aadutils.getFirstElement(endpoint[0],'EndpointReference');
-        this.wsfed.loginEndpoint = aadutils.getFirstElement(endPointReference,'Address');
-
-        var keyDescriptor = aadutils.getElement(role, 'KeyDescriptor');
-        // copy the x509 certs from the metadata
-        this.wsfed.certs = [];
-        for (var j=0;j<keyDescriptor.length;j++) {
-          this.wsfed.certs.push(keyDescriptor[j].KeyInfo[0].X509Data[0].X509Certificate[0]);
-        }
-        break;
-      }
-    }
-
-    return next(null);
-  } catch (e) {
-    next(new Error('Invalid WSFED Federation Metadata ' + e.message));
-  }
-};
-
-Metadata.prototype.generateOidcPEM = function(kid) {
+  Metadata.prototype.generateOidcPEM = function(kid) {
   if (!this.oidc.keys) {
     return null;
   }
@@ -200,10 +188,9 @@ Metadata.prototype.generateOidcPEM = function(kid) {
   return null;
 };
 
-
 Metadata.prototype.fetch = function(callback) {
   var self = this;
-  log.info("Fetching metadata from the provided metadata URL: " + self.url);
+
   async.waterfall([
     // fetch the Federation metadata for the AAD tenant
     function(next){
@@ -213,22 +200,13 @@ Metadata.prototype.fetch = function(callback) {
         } else if(response.statusCode !== 200) {
           next(new Error("Error:" + response.statusCode +  " Cannot get AAD Federation metadata from " + self.url));
         } else {
-          log.info("***** METADATA ******");
-          log.info("");
-          log.info(body);
-          log.info("");
-          log.info("***********");
           next(null, body);
         }
       });
     },
     function(body, next){
-
-      log.info("Parsing metadata for authtype: " + self.authtype);
-      // parse the AAD Federation metadata xml
-
       if(self.authtype == "saml" || self.authtype == "wsfed") {
-      log.info(body, "Parsing XML retreived from the endpoint");
+      // parse the AAD Federation metadata xml
       var parser = new xml2js.Parser({explicitRoot:true});
       // Note: xml responses from Azure AAD have a leading \ufeff which breaks xml2js parser!
       parser.parseString(body.replace("\ufeff", ""), function (err, data) {
@@ -236,20 +214,19 @@ Metadata.prototype.fetch = function(callback) {
         next(err);
 
       });
-
-    } else if(self.authtype == "oidc") {
+      } else if(self.authtype == "oidc") {
       log.info("Parsing JSON retreived from the endpoint");
       self.metadata = JSON.parse(body);
       next(null);
 
-    } else { next(new Error("No Authentication type specified to metadata parser. Valid types are saml, wsfed, or odic")); }
+      } else { next(new Error("No Authentication type specified to metadata parser. Valid types are saml, wsfed, or odic")); }
 
-  },
-  function(next){
+    },
+    function(next){
 
         console.log('updating metadata...');
 
-        if(self.authtype == "saml") {
+      if(self.authtype == "saml") {
           self.updateSamlMetadata(self.metatdata, next);
         }
         else if(self.authtype == "wsfed") {
@@ -259,10 +236,10 @@ Metadata.prototype.fetch = function(callback) {
           self.updateOidcMetadata(self.metadata, next);
         }
       },
-    ], function (err) {
-      callback(err);
-      log.info('Goodbye from Metadata');
-    });
-  };
+  ], function (err) {
+    // return err or success (err === null) to callback
+    callback(err);
+  });
+};
 
 exports.Metadata = Metadata;
