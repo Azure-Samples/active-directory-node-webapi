@@ -183,7 +183,7 @@ function listTasks(req, res, next) {
         }
 
     if (!data.length) {
-            log.warn(err, "There is no tasks in the database. Did you initalize the database as stated in the README?");
+            log.warn(err, "There is no tasks in the database. Add one!");
         }
 
         if (!owner) {
