@@ -41,6 +41,3 @@ exports.getFirstElement = function (parentElement, elementName) {
   }
   return Array.isArray(element) ? element[0] : element;
 };
-
-
-
