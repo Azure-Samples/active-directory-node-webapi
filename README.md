@@ -3,7 +3,6 @@
 [![Join the chat at https://gitter.im/AzureADSamples/WebAPI-Nodejs](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AzureADSamples/WebAPI-Nodejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 This Node.js server will give you with a quick and easy way to set up a REST API Service that's integrated with Windows Azure Active Directory for API protection using the OAuth2 protocol. The sample server included in the download are designed to run on any platform.
->>>>>>> master
 
 This REST API server is built using Restify and MongoDB with the following features:
 
