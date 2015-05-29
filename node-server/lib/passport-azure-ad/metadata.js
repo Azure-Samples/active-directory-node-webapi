@@ -205,7 +205,7 @@ Metadata.prototype.fetch = function(callback) {
       });
     },
     function(body, next){
-      if(self.authtype == "saml" || self.authtype == "wsfed") {
+      if(self.authtype === "saml" || self.authtype === "wsfed") {
       // parse the AAD Federation metadata xml
       var parser = new xml2js.Parser({explicitRoot:true});
       // Note: xml responses from Azure AAD have a leading \ufeff which breaks xml2js parser!
@@ -214,7 +214,7 @@ Metadata.prototype.fetch = function(callback) {
         next(err);
 
       });
-      } else if(self.authtype == "oidc") {
+    } else if(self.authtype === "oidc") {
       log.info("Parsing JSON retreived from the endpoint");
       self.metadata = JSON.parse(body);
       next(null);
@@ -224,15 +224,15 @@ Metadata.prototype.fetch = function(callback) {
     },
     function(next){
 
-        console.log('updating metadata...');
+        log.info('updating metadata...');
 
-      if(self.authtype == "saml") {
+      if(self.authtype === "saml") {
           self.updateSamlMetadata(self.metatdata, next);
         }
-        else if(self.authtype == "wsfed") {
+        else if(self.authtype === "wsfed") {
           self.updateWsfedMetadata(self.metatdata, next);
       }
-        else if(self.authtype == "oidc") {
+        else if(self.authtype === "oidc") {
           self.updateOidcMetadata(self.metadata, next);
         }
       },

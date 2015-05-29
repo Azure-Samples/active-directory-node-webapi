@@ -1,6 +1,6 @@
 #Windows Azure Active Directory Sample REST API Service for Node.js using MongoDB and Restify
 
-This Node.js server will give you with a quick and easy way to set up a REST API Service that's integrated with Azure Active Directory for API protection using the OAuth2 protocol with bearer tokens. The sample server included in the download are designed to run on any platform.
+This Node.js server will give you with a quick and easy way to set up a REST API Service that's integrated with Azure Active Directory for API protection. It uses the OAuth2 protocol with bearer tokens. The sample server included in the download are designed to run on any platform.
 
 This REST API server is built using Restify and MongoDB with the following features:
 
@@ -29,11 +29,11 @@ Install Node.js from [http://nodejs.org](http://nodejs.org).
 
 ### Step 4: Install MongoDB on to your platform
 
-To successfully use this sample, you must have a working installation of MongoDB. We will use MongoDB to make our REST API persistant across server instances.
+To successfully use this sample, you must have a working installation of MongoDB. We will use MongoDB to make our REST API persistent across server instances.
 
 Install MongoDB from [http://mongodb.org](http://www.mongodb.org).
 
-**NOTE:** This walkthrough assumes that you use the default installation and server endpoints for MongoDB, which at the time of this writing is: mongodb://localhost
+**NOTE:** This walkthrough assumes that you use the default installation and server endpoints for MongoDB, which at the time of this writing is: mongodb://localhost. This should work locally without any configuration changes if you run this sample on the same machine as you've installed and ran mongodb.
 
 
 ### Step 5: Download the Sample application and modules
@@ -45,12 +45,30 @@ From your shell or command line:
 * `$ git clone git@github.com:AzureADSamples/WebAPI-Nodejs.git`
 * `$ npm install`
 
-### Step 6: Run the application
+**Did you get an error?:** Restify provides a powerful mechanism to trace REST calls using DTrace. However, many operating systems do not have DTrace available. You can safely ignore these errors.
+
+* `$ cd node-server`
+* `$ npm install` (yes, again)
+
+### Step 6: Configure your server using config.js
+
+You will need to update the sample to use your values for audienceURI and for the metadata endpoint.
+
+**NOTE:** You may also pass the `issuer:` value if you wish to validate that as well.
+
+### Step 7: Run the application
 
 
 * `$ cd node-server	`
 * `$ node server.js`
 
+**Is the server output hard to understand?:** We use `bunyan` for logging in this sample. The console won't make much sense to you unless you also install bunyan and run the server like above but pipe it through the bunyan binary:
+
+* `$ node server.js | bunyan`
+
+### Your done!
+
+You will have a server successfully running on `http://localhost:8888`. Your REST / JSON API Endpoint will be `http://localhost:8888/tasks`
 
 ### Acknowledgements
 

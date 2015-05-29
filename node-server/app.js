@@ -38,7 +38,7 @@
     var options = {
    // The URL of the metadata document for your app. We will put the keys for token validation from the URL found in the jwks_uri tag of the in the metadata.
   identityMetadata: config.creds.identityMetadata,
-  // issuer: config.creds.issuer, 
+  // issuer: config.creds.issuer,
   audience: config.creds.audience
 
 };
@@ -317,7 +317,7 @@ var server = restify.createServer({
                 if (err) { return done(err); }
                   if (!user) {
            // "Auto-registration"
-           log.info('User was added automatically as they were new. Their sub is: ', token.sub)
+           log.info('User was added automatically as they were new. Their sub is: ', token.sub);
            users.push(token);
            owner = token.sub;
            return done(null, token);
@@ -374,13 +374,13 @@ var server = restify.createServer({
 
   server.listen(serverPort, function() {
 
-  var consoleMessage = '\n Windows Azure Active Directory Tutorial'
-  consoleMessage += '\n +++++++++++++++++++++++++++++++++++++++++++++++++++++'
+  var consoleMessage = '\n Windows Azure Active Directory Tutorial';
+  consoleMessage += '\n +++++++++++++++++++++++++++++++++++++++++++++++++++++';
   consoleMessage += '\n %s server is listening at %s';
   consoleMessage += '\n Open your browser to %s/tasks\n';
-  consoleMessage += '+++++++++++++++++++++++++++++++++++++++++++++++++++++ \n'
-  consoleMessage += '\n !!! why not try a $curl -isS %s | json to get some ideas? \n'
-  consoleMessage += '+++++++++++++++++++++++++++++++++++++++++++++++++++++ \n\n'
+  consoleMessage += '+++++++++++++++++++++++++++++++++++++++++++++++++++++ \n';
+  consoleMessage += '\n !!! why not try a $curl -isS %s | json to get some ideas? \n';
+  consoleMessage += '+++++++++++++++++++++++++++++++++++++++++++++++++++++ \n\n';
 
   //log.info(consoleMessage, server.name, server.url, server.url, server.url);
 

@@ -106,7 +106,7 @@ if(options.identityMetadata) {
 }
 
 if (!options.certificate && !options.identityMetadata) {
-  log.warn("No options was presented to Strategy as required.")
+  log.warn("No options was presented to Strategy as required.");
    throw new TypeError('OIDCBearerStrategy requires either a PEM encoded public key or a metadata location that contains cert data for RSA and ECDSA callback.');
  }
 
@@ -143,7 +143,7 @@ if (!options.certificate && !options.identityMetadata) {
 
 
 var decoded = jws.decode(token);
-    if (decoded == null) {
+    if (decoded === null) {
       done(null, false, "Invalid JWT token.");
     }
 
@@ -198,7 +198,7 @@ var decoded = jws.decode(token);
 var opts = {};
   opts.passReqToCallback = true;
 
-  console.log('Req: ' + options.passReqToCallback);
+  log.info('Req: ' + options.passReqToCallback);
 
     BearerStrategy.call(this, options, jwtVerify);
 
