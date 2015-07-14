@@ -193,8 +193,8 @@ function listTasks(req, res, next) {
             log.info(data);
         }
 
-        if (!data.length) {
-            log.warn(err, "There is no tasks in the database. Did you initalize the database as stated in the README?");
+    if (!data.length) {
+            log.warn(err, "There is no tasks in the database. Add one!");
         }
 
         if (!owner) {
@@ -331,8 +331,8 @@ var oidcStrategy = new OIDCBearerStrategy(options,
             if (!user) {
                 // "Auto-registration"
                 log.info('User was added automatically as they were new. Their sub is: ', token.sub);
-                users.push(token);
-                owner = token.sub;
+           users.push(token);
+           owner = token.sub;
                 return done(null, token);
             }
             owner = token.sub;

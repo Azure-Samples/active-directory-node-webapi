@@ -1,12 +1,8 @@
 #Windows Azure Active Directory Sample REST API Service for Node.js using MongoDB and Restify
 
-<<<<<<< HEAD
-This Node.js server will give you with a quick and easy way to set up a REST API Service that's integrated with Azure Active Directory for API protection. It uses the OAuth2 protocol with bearer tokens. The sample server included in the download are designed to run on any platform.
-=======
 [![Join the chat at https://gitter.im/AzureADSamples/WebAPI-Nodejs](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AzureADSamples/WebAPI-Nodejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
-This Node.js server will give you with a quick and easy way to set up a REST API Service that's integrated with Windows Azure Active Directory for API protection using the OAuth2 protocol. The sample server included in the download are designed to run on any platform.
->>>>>>> master
+This Node.js server will give you with a quick and easy way to set up a REST API Service using the OAuth2 protocol. Then this service is integrated with Azure Active Directory for API protection. The sample server included in the download are designed to run on any platform.
 
 This REST API server is built using Restify and MongoDB with the following features:
 
@@ -62,7 +58,7 @@ You will need to update the sample to use your values for audienceURI and for th
 
 
 * `$ cd node-server	`
-* `$ node server.js`
+* `$ node app.js`
 
 **Is the server output hard to understand?:** We use `bunyan` for logging in this sample. The console won't make much sense to you unless you also install bunyan and run the server like above but pipe it through the bunyan binary:
 
