@@ -49,12 +49,8 @@ Next, clone the sample repo and install the NPM.
 From your shell or command line:
 
 * `$ git clone git@github.com:AzureADSamples/WebAPI-Nodejs.git`
-* `$ npm install`
-
-**Did you get an error?:** Restify provides a powerful mechanism to trace REST calls using DTrace. However, many operating systems do not have DTrace available. You can safely ignore these errors.
-
 * `$ cd node-server`
-* `$ npm install` (yes, again)
+* `$ npm install`
 
 ### Step 6: Configure your server using config.js
 
