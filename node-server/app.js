@@ -30,7 +30,7 @@ var bunyan = require('bunyan');
 var restify = require('restify');
 var config = require('./config');
 var passport = require('passport');
-var OIDCBearerStrategy = require('passport-azure-ad').OIDCStrategy;
+var OIDCBearerStrategy = require('passport-azure-ad').BearerStrategy;
 
 
 // We pass these options in to the ODICBearerStrategy.
@@ -356,34 +356,34 @@ passport.use(oidcStrategy);
 /*
 **/
 
-server.get('/tasks', passport.authenticate('oidc-bearer', {
+server.get('/tasks', passport.authenticate('oauth-bearer', {
     session: false
 }), listTasks);
-server.get('/tasks', passport.authenticate('oidc-bearer', {
+server.get('/tasks', passport.authenticate('oauth-bearer', {
     session: false
 }), listTasks);
-server.get('/tasks/:owner', passport.authenticate('oidc-bearer', {
+server.get('/tasks/:owner', passport.authenticate('oauth-bearer', {
     session: false
 }), getTask);
-server.head('/tasks/:owner', passport.authenticate('oidc-bearer', {
+server.head('/tasks/:owner', passport.authenticate('oauth-bearer', {
     session: false
 }), getTask);
-server.post('/tasks/:owner/:task', passport.authenticate('oidc-bearer', {
+server.post('/tasks/:owner/:task', passport.authenticate('oauth-bearer', {
     session: false
 }), createTask);
-server.post('/tasks', passport.authenticate('oidc-bearer', {
+server.post('/tasks', passport.authenticate('oauth-bearer', {
     session: false
 }), createTask);
-server.del('/tasks/:owner/:task', passport.authenticate('oidc-bearer', {
+server.del('/tasks/:owner/:task', passport.authenticate('oauth-bearer', {
     session: false
 }), removeTask);
-server.del('/tasks/:owner', passport.authenticate('oidc-bearer', {
+server.del('/tasks/:owner', passport.authenticate('oauth-bearer', {
     session: false
 }), removeTask);
-server.del('/tasks', passport.authenticate('oidc-bearer', {
+server.del('/tasks', passport.authenticate('oauth-bearer', {
     session: false
 }), removeTask);
-server.del('/tasks', passport.authenticate('oidc-bearer', {
+server.del('/tasks', passport.authenticate('oauth-bearer', {
     session: false
 }), removeAll, function respond(req, res, next) {
     res.send(204);
