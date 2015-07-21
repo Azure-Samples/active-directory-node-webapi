@@ -62,9 +62,10 @@ You will need to update the sample to use your values for audienceURI and for th
 
 **Is the server output hard to understand?:** We use `bunyan` for logging in this sample. The console won't make much sense to you unless you also install bunyan and run the server like above but pipe it through the bunyan binary:
 
-* `$ node server.js | bunyan`
+* `$ npm install -g bunyan`
+* `$ node app.js | bunyan`
 
-### Your done!
+### You're done!
 
 You will have a server successfully running on `http://localhost:8888`. Your REST / JSON API Endpoint will be `http://localhost:8888/tasks`
 
