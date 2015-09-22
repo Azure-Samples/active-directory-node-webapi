@@ -1,3 +1,9 @@
+---
+services:
+platforms:
+author: azure
+---
+
 #Windows Azure Active Directory Sample REST API Service for Node.js using MongoDB and Restify
 
 [![Join the chat at https://gitter.im/AzureADSamples/WebAPI-Nodejs](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AzureADSamples/WebAPI-Nodejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
