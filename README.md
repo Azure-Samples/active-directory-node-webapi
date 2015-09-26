@@ -1,3 +1,9 @@
+---
+services: active-directory
+platforms: node
+author: brandwe
+---
+
 # Securing a web API with Azure AD
 
 [![Join the chat at https://gitter.im/AzureADSamples/WebAPI-Nodejs](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AzureADSamples/WebAPI-Nodejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -86,3 +92,4 @@ We would like to acknowledge the folks who own/contribute to the following proje
 ## About The Code
 
 Code hosted on GitHub under Apache 2.0 license
+
