@@ -6,8 +6,6 @@ author: brandwe
 
 # Securing a web API with Azure AD
 
-[![Join the chat at https://gitter.im/AzureADSamples/WebAPI-Nodejs](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/AzureADSamples/WebAPI-Nodejs?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 This Node.js server will give you with a quick and easy way to set up a REST API Service using the OAuth2 protocol. Then this service is integrated with Azure Active Directory for API protection. The sample server included in the download are designed to run on any platform.
 
 This REST API server is built using Restify and MongoDB with the following features:
@@ -50,7 +48,7 @@ Next, clone the sample repo and install the NPM.
 
 From your shell or command line:
 
-* `$ git clone git@github.com:AzureADSamples/WebAPI-Nodejs.git`
+* `$ git clone https://github.com/Azure-Samples/active-directory-node-webapi.git`
 * `$ cd node-server`
 * `$ npm install`
 
