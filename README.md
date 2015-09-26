@@ -13,7 +13,7 @@ This Node.js server will give you with a quick and easy way to set up a REST API
 This REST API server is built using Restify and MongoDB with the following features:
 
 * A node.js server running an REST API interface with JSON using MongoDB as persistent storage
-* REST APIs leveraging OAuth2 API protection for endpoints using Windows Azure Active Directory
+* REST APIs leveraging OAuth2 API protection for endpoints using Azure Active Directory
 
 We've released all of the source code for this example in GitHub under an Apache 2.0 license, so feel free to clone (or even better, fork!) and provide feedback on the forums.
 
@@ -22,13 +22,13 @@ We've released all of the source code for this example in GitHub under an Apache
 
 Getting started with the sample is easy. It is configured to run out of the box with minimal setup.
 
-### Step 1: Register a Windows Azure AD Tenant
+### Step 1: Register a Azure AD Tenant
 
-To use this sample you will need a Windows Azure Active Directory Tenant. If you're not sure what a tenant is or how you would get one, read [What is an Azure AD tenant](http://technet.microsoft.com/library/jj573650.aspx)? or [Sign up for Azure as an organization](http://azure.microsoft.com/en-us/documentation/articles/sign-up-organization/). These docs should get you started on your way to using Windows Azure AD.
+To use this sample you will need a Azure Active Directory Tenant. If you're not sure what a tenant is or how you would get one, read [What is an Azure AD tenant](http://technet.microsoft.com/library/jj573650.aspx)? or [Sign up for Azure as an organization](http://azure.microsoft.com/en-us/documentation/articles/sign-up-organization/). These docs should get you started on your way to using Azure AD.
 
-### Step 2: Register your Web API with your Windows Azure AD Tenant
+### Step 2: Register your Web API with your Azure AD Tenant
 
-After you get your Windows Azure AD tenant, add this sample app to your tenant so you can use it to protect your API endpoints. If you need help with this step, see: [Register the REST API Service Windows Azure Active Directory](https://github.com/AzureADSamples/WebAPI-Nodejs/wiki/Setup-Windows-Azure-AD)
+After you get your Azure AD tenant, add this sample app to your tenant so you can use it to protect your API endpoints. If you need help with this step, see: [Register the REST API Service Azure Active Directory](https://github.com/AzureADSamples/WebAPI-Nodejs/wiki/Setup-Windows-Azure-AD)
 
 ### Step 3: Download node.js for your platform
 To successfully use this sample, you need a working installation of Node.js.
@@ -77,7 +77,7 @@ You will have a server successfully running on `http://localhost:8888`. Your RES
 
 ### Acknowledgements
 
-We would like to acknowledge the folks who own/contribute to the following projects for their support of Windows Azure Active Directory and their libraries that were used to build this sample. In places where we forked these libraries to add additional functionality, we ensured that the chain of forking remains intact so you can navigate back to the original package. Working with such great partners in the open source community clearly illustrates what open collaboration can accomplish. Thank you!
+We would like to acknowledge the folks who own/contribute to the following projects for their support of Azure Active Directory and their libraries that were used to build this sample. In places where we forked these libraries to add additional functionality, we ensured that the chain of forking remains intact so you can navigate back to the original package. Working with such great partners in the open source community clearly illustrates what open collaboration can accomplish. Thank you!
 
 
 - [MongoDB](http://www.mongodb.org) - MongoDB (from "humongous") is an open-source document database, and the leading NoSQL database. Written in C++
