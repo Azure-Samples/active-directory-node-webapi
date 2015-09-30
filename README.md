@@ -1,6 +1,6 @@
 ---
 services: active-directory
-platforms: node
+platforms: nodejs
 author: brandwe
 ---
 
