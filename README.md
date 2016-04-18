@@ -54,9 +54,9 @@ From your shell or command line:
 
 ### Step 6: Configure your server using config.js
 
-You will need to update the sample to use your values for audienceURI and for the metadata endpoint.
+You will need to update the sample to use your values for the metadata endpoint.
 
-**NOTE:** You may also pass the `issuer:` value if you wish to validate that as well.
+**NOTE:** If you wish to accept multiple tenants for this app, you'll want to use the *common* endpoint and you'll need to pass the `issuer:` and `audience:` value if you wish to validate that as well.
 
 ### Step 7: Run the application
 
@@ -71,7 +71,7 @@ You will need to update the sample to use your values for audienceURI and for th
 
 ### You're done!
 
-You will have a server successfully running on `http://localhost:8888`. Your REST / JSON API Endpoint will be `http://localhost:8888/tasks`
+You will have a server successfully running on `http://localhost:3000`. Your REST / JSON API Endpoint will be `http://localhost:3000/tasks`
 
 ### Acknowledgements
 
