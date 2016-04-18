@@ -39,8 +39,10 @@ var options = {
     // The URL of the metadata document for your app. We will put the keys for token validation from the URL found in the jwks_uri tag of the in the metadata.
     identityMetadata: config.creds.identityMetadata,
     issuer: config.creds.issuer,
-    audience: config.creds.audience
-
+    audience: config.creds.audience,
+    validateIssuer: config.creds.validateIssuer,
+    passReqToCallback: config.creds.passReqToCallback,
+    loggingLevel: config.creds.loggingLevel
 };
 
 // array to hold logged in users and the current logged in user (owner)
@@ -49,7 +51,18 @@ var owner = null;
 
 // Our logger
 var log = bunyan.createLogger({
-    name: 'Windows Azure Active Directory Sample'
+    name: 'Microsoft OAuth2 Example Web Application',
+         streams: [
+        {
+            stream: process.stderr,
+            level: "error",
+            name: "error"
+        }, 
+        {
+            stream: process.stdout,
+            level: "warn",
+            name: "console"
+        }, ]
 });
 
 // MongoDB setup
