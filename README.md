@@ -1,7 +1,7 @@
 ---
 services: active-directory
 platforms: nodejs
-author: brandwe
+author: xerners
 ---
 
 # Securing a web API with Azure AD
