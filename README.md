@@ -18,6 +18,11 @@ We've released all of the source code for this example in GitHub under an Apache
 
 ## Quick Start
 
+>[!Note] If you want to run this sample on **Azure Government**, navigate to the "Azure Government Deviations" section at the bottom of this page.
+>
+>
+>
+
 Getting started with the sample is easy. It is configured to run out of the box with minimal setup.
 
 ### Step 1: Register a Azure AD Tenant
@@ -72,6 +77,17 @@ You will need to update the sample to use your values for the metadata endpoint.
 ### You're done!
 
 You will have a server successfully running on `http://localhost:3000`. Your REST / JSON API Endpoint will be `http://localhost:3000/tasks`
+
+## Azure Government Deviations
+
+In order to run this sample on Azure Government you can follow through the steps above with a few variations:
+
+- Step 2: 
+   - You must register this sample for your AAD Tenant in Azure Government by following Step 2 above in the [Azure Government portal](https://portal.azure.us). 
+- Step 3: 
+    - Navigate to the `node-server` folder and open the `config.js` file. The `IdentityMetadata` property should end with `.us`. The common `IdentityMetadata` property should be: `https://login.microsoftonline.us/common/.well-known/openid-configuration`. 
+    
+Once those changes have been accounted for, you should be able to run this sample on Azure Government.  
 
 ### Acknowledgements
 
