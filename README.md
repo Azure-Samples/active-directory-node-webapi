@@ -59,7 +59,7 @@ From your shell or command line:
 
 ### Step 6: Configure your server using config.js
 
-You will need to update the sample to use your values for the metadata endpoint.
+You will need to update the sample to use your values for the metadata endpoint and the client ID
 
 **NOTE:** If you wish to accept multiple tenants for this app, you'll want to use the *common* endpoint and you'll need to pass the `issuer:` and `audience:` value if you wish to validate that as well.
 

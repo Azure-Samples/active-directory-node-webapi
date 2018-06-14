@@ -38,6 +38,7 @@ var OIDCBearerStrategy = require('passport-azure-ad').BearerStrategy;
 var options = {
     // The URL of the metadata document for your app. We will put the keys for token validation from the URL found in the jwks_uri tag of the in the metadata.
     identityMetadata: config.creds.identityMetadata,
+    clientID: config.creds.clientID,
     issuer: config.creds.issuer,
     audience: config.creds.audience,
     validateIssuer: config.creds.validateIssuer,

@@ -1,6 +1,7 @@
  // Don't commit this file to your public repos. This config is for first-run
  exports.creds = {
      mongoose_auth_local: 'mongodb://localhost/tasklist', // Your mongo auth uri goes here
+     clientID: 'cff56d8f-f602-4afd-94e4-c95b76f1c81e',
      identityMetadata: 'https://login.microsoftonline.com/cff56d8f-f602-4afd-94e4-c95b76f1c81e/.well-known/openid-configuration', // This is customized for your tenant.
      // You may use the common endpoint for multi-tenant scenarios
      // if you do, make sure you set validateIssuer to false and specify an audience
