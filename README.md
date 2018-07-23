@@ -6,7 +6,7 @@ author: brandwe
 
 # Securing a web API with Azure AD
 
-This Node.js server will give you with a quick and easy way to set up a REST API Service using the OAuth2 protocol. Then this service is integrated with Azure Active Directory for API protection. The sample server included in the download are designed to run on any platform.
+This Node.js server will give you a quick and easy way to set up a REST API Service using the OAuth2 protocol. Then this service is integrated with Azure Active Directory for API protection. The sample server included in the download is designed to run on any platform.
 
 This REST API server is built using Restify and MongoDB with the following features:
 
