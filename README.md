@@ -6,4 +6,4 @@ There's a newer version of this sample taking advantage of the Microsoft identit
 
 Check it out: [active-directory-javascript-nodejs-webapi-v2](https://github.com/Azure-Samples/active-directory-javascript-nodejs-webapi-v2)
 
-If you really need to access this Azure AD v1.0, you can navigate to the **master** branch, but please know that it's no longer supported.
+If you really need to access this Azure AD v1.0, you can navigate to the [master](https://github.com/Azure-Samples/active-directory-node-webapi/tree/master) branch, but please know that it's no longer supported.
